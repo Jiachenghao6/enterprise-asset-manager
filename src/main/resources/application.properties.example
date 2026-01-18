@@ -1,12 +1,8 @@
-spring.application.name=enterprise-asset-manager
-# Verbindung zur PostgreSQL-Datenbank
 spring.datasource.url=jdbc:postgresql://localhost:5432/asset_management_db
-spring.datasource.username=jj
-spring.datasource.password=Hjc030411.
+spring.datasource.username=YOUR_USERNAME
+spring.datasource.password=YOUR_PASSWORD
 spring.datasource.driver-class-name=org.postgresql.Driver
-
-# JPA / Hibernate Einstellungen
-# 'update' erstellt Tabellen automatisch basierend auf deinen Java-Klassen
+# ... 其他非私密配置
 spring.jpa.hibernate.ddl-auto=update
 
 # Zeigt die SQL-Befehle in der Konsole an (sehr gut zum Lernen!)
