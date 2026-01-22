@@ -1,6 +1,7 @@
 package du.tum.student.enterpriseassetmanager.service;
 
 import du.tum.student.enterpriseassetmanager.domain.Asset;
+import du.tum.student.enterpriseassetmanager.exception.AssetNotFoundException;
 import du.tum.student.enterpriseassetmanager.repository.AssetRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,7 @@ public class AssetService {
 
     public BigDecimal calculateValue(long assetId) {
        Optional<Asset> asset = assetRepository.findById(assetId);
-       if (asset.isEmpty()) {throw new RuntimeException("Asset not found");}
+       if (asset.isEmpty()) {throw new AssetNotFoundException("Asset with ID " + assetId + " not found");}
        BigDecimal currentValue = depreciationCalculator.calculateCurrentValue(asset.get());
        return currentValue;
     }
