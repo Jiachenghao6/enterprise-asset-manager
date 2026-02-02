@@ -31,6 +31,11 @@ public abstract class Asset {
     @Enumerated(EnumType.STRING)
     private AssetStatus status;
 
+    @Column(nullable = false)
+    private BigDecimal residualValue;
+
+    @Column(nullable = false)
+    private Integer usefulLifeYears;
 
     public Asset(String name, BigDecimal purchasePrice, LocalDate purchaseDate, AssetStatus status) {
         this.name = name;

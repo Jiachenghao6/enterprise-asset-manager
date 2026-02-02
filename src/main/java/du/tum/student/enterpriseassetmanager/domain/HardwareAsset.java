@@ -23,6 +23,12 @@ public class HardwareAsset extends Asset {
     @Column(name = "warranty_end_date")
     private LocalDate warrantyDate;
 
+    @Column(nullable = false)
+    private LocalDate lastMaintenanceDate;
+
+    @Column(nullable = false)
+    private Integer maintenanceIntervalMonths;
+
     public HardwareAsset(String name, BigDecimal purchasePrice, LocalDate purchaseDate, AssetStatus status,
                          String serialNumber, LocalDate warrantyDate) {
         super(name, purchasePrice, purchaseDate, status);
