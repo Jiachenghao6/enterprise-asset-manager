@@ -3,16 +3,13 @@ package du.tum.student.enterpriseassetmanager.controller;
 import du.tum.student.enterpriseassetmanager.domain.Asset;
 import du.tum.student.enterpriseassetmanager.service.AssetService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/v1/asset")
+@RequestMapping("api/v1/assets")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class AssetController {
@@ -24,7 +21,7 @@ public class AssetController {
     }
 
     @GetMapping("/{id}/value")
-    public BigDecimal getAssetValue(Long id) {
+    public BigDecimal getAssetValue(@PathVariable Long id) {
         return assetService.calculateValue(id);
     }
 
