@@ -24,8 +24,12 @@ public class SoftwareAsset extends Asset {
     private LocalDate expiryDate;
 
     public SoftwareAsset(String name, BigDecimal purchasePrice, LocalDate purchaseDate, AssetStatus status,
+                         BigDecimal residualValue, Integer usefulLifeYears, // 新增参数
                          String licenseKey, LocalDate expiryDate) {
-        super(name, purchasePrice, purchaseDate, status);
+
+        // 调用更新后的父类构造函数
+        super(name, purchasePrice, purchaseDate, status, residualValue, usefulLifeYears);
+
         this.licenseKey = licenseKey;
         this.expiryDate = expiryDate;
     }

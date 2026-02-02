@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
+import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,15 +25,27 @@ public class HardwareAsset extends Asset {
     private LocalDate warrantyDate;
 
     @Column(nullable = false)
+    private String location;
+
+    @Column
     private LocalDate lastMaintenanceDate;
 
-    @Column(nullable = false)
+    @Column
+    @Min(value = 1, message = "Maintenance interval must be at least 1 month")
     private Integer maintenanceIntervalMonths;
 
-    public HardwareAsset(String name, BigDecimal purchasePrice, LocalDate purchaseDate, AssetStatus status,
-                         String serialNumber, LocalDate warrantyDate) {
-        super(name, purchasePrice, purchaseDate, status);
+    public HardwareAsset(String name, BigDecimal purchasePrice, LocalDate purchaseDate,
+                         AssetStatus status, BigDecimal residualValue, Integer usefulLifeYears,
+                         String serialNumber, String location,
+                         LocalDate lastMaintenanceDate, Integer maintenanceIntervalMonths) {
+
+        // 1. 调用父类构造函数 (super)
+        super(name, purchasePrice, purchaseDate, status, residualValue, usefulLifeYears);
+
+        // 2. 赋值子类字段
         this.serialNumber = serialNumber;
-        this.warrantyDate = warrantyDate;
+        this.location = location;
+        this.lastMaintenanceDate = lastMaintenanceDate;
+        this.maintenanceIntervalMonths = maintenanceIntervalMonths;
     }
 }

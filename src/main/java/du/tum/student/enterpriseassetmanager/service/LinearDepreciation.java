@@ -10,24 +10,27 @@ import java.time.temporal.ChronoUnit;
 
 @Component
 public class LinearDepreciation implements DepreciationCalculator{
-    private static final int USEFUL_LIFE_YEARS = 5;
 
     @Override
     public BigDecimal calculateCurrentValue(Asset asset) {
-        if (asset == null || asset.getPurchasePrice() == null)
+        if (asset == null || asset.getPurchasePrice() == null || asset.getUsefulLifeYears() == null)
             return BigDecimal.ZERO;
+        BigDecimal originalPrice = asset.getPurchasePrice();
+        BigDecimal residualValue = asset.getResidualValue();
+        Integer usefulLifeYears = asset.getUsefulLifeYears();
         long yearsUsed = ChronoUnit.YEARS.between(asset.getPurchaseDate(), LocalDate.now());
 
-        if (yearsUsed >= USEFUL_LIFE_YEARS) {
-            return BigDecimal.ZERO; // KANN MAN NICHT MEHR BENUTZEN
+        if (yearsUsed >= usefulLifeYears) {
+            return residualValue; // KANN MAN NICHT MEHR BENUTZEN
         }
+        BigDecimal depreciableAmount = originalPrice.subtract(residualValue);
 
-        BigDecimal depreciationPerYear = asset.getPurchasePrice().divide(BigDecimal.valueOf(USEFUL_LIFE_YEARS), 2,RoundingMode.HALF_UP);
+        BigDecimal depreciationPerYear = depreciableAmount.divide(BigDecimal.valueOf(usefulLifeYears), 2,RoundingMode.HALF_UP);
 
         BigDecimal totalDepreciation = depreciationPerYear.multiply(BigDecimal.valueOf(yearsUsed));
 
-        BigDecimal currentValue = asset.getPurchasePrice().subtract(totalDepreciation);
+        BigDecimal currentValue = originalPrice.subtract(totalDepreciation);
 
-        return currentValue.max(BigDecimal.ZERO);
+        return currentValue.max(residualValue);
     }
 }
