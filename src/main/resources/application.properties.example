@@ -9,3 +9,8 @@ spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+# JWT Configuration
+#  256-bit (Base64)
+application.security.jwt.secret-key= your key
+application.security.jwt.expiration= your time(seconds)
