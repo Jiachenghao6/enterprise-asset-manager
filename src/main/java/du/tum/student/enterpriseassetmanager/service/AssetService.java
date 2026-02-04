@@ -20,6 +20,10 @@ public class AssetService {
         return assetRepository.findAll();
     }
 
+    public Asset createAsset(Asset asset) {
+        return assetRepository.save(asset);
+    }
+
     public BigDecimal calculateValue(long assetId) {
        Optional<Asset> asset = assetRepository.findById(assetId);
        if (asset.isEmpty()) {throw new AssetNotFoundException("Asset with ID " + assetId + " not found");}

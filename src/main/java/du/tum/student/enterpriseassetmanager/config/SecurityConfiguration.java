@@ -31,7 +31,11 @@ public class SecurityConfiguration {
                 // 2. 配置请求拦截规则
                 .authorizeHttpRequests(auth -> auth
                         // 允许 "白名单" 访问 (例如登录、注册接口，虽然我们还没写，但先预留好)
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/auth/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html").permitAll()
                         // 其他任何请求，都必须通过认证 (Authenticate)
                         .anyRequest().authenticated()
                 )

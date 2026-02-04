@@ -1,6 +1,7 @@
 package du.tum.student.enterpriseassetmanager.controller;
 
 import du.tum.student.enterpriseassetmanager.domain.Asset;
+import du.tum.student.enterpriseassetmanager.domain.HardwareAsset;
 import du.tum.student.enterpriseassetmanager.service.AssetService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,14 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class AssetController {
     private final AssetService assetService;
+
+    @PostMapping("/hardware")
+    public Asset createHardware(@RequestBody HardwareAsset asset) {
+        return assetService.createAsset(asset);
+    }
+
+
+
 
     @GetMapping
     public List<Asset> getAllAssets() {

@@ -6,14 +6,22 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 @Getter
 @Setter
 @NoArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
 public abstract class Asset {
     //@id   es ist ein Primary key
     @Id
@@ -46,6 +54,24 @@ public abstract class Asset {
     @NotNull
     @Min(value = 1, message = "Use life must be at least 1 year")
     private Integer usefulLifeYears;
+
+    // --- 新增审计字段 ---
+
+    @CreatedBy
+    @Column(nullable = false, updatable = false) // 创建人一旦写入，后续更新不可修改
+    private String createdBy;
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false) // 创建时间不可修改
+    private LocalDateTime createdAt;
+
+    @LastModifiedBy
+    @Column(insertable = false) // 只有更新时才写入（可选配置，通常不写 insertable=false 也行，看需求）
+    private String lastModifiedBy;
+
+    @LastModifiedDate
+    @Column(insertable = false)
+    private LocalDateTime lastModifiedAt;
 
     public Asset(String name, BigDecimal purchasePrice, LocalDate purchaseDate, AssetStatus status, BigDecimal residualValue, Integer usefulLifeYears) {
         this.name = name;
