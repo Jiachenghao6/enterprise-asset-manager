@@ -7,8 +7,10 @@ import { authService } from '../services/authService';
 const Register: React.FC = () => {
     const [firstname, setFirstname] = useState('');
     const [lastname, setLastname] = useState('');
+    const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState<'USER' | 'ADMIN'>('USER');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -17,12 +19,12 @@ const Register: React.FC = () => {
         setIsLoading(true);
 
         try {
-            if (!firstname || !lastname || !email || !password) {
+            if (!firstname || !lastname || !username || !email || !password) {
                 toast.error('Please fill in all fields.');
                 return;
             }
 
-            await authService.register({ firstname, lastname, email, password });
+            await authService.register({ firstname, lastname, username, email, password, role });
             toast.success('Account created successfully!');
             navigate('/dashboard');
         } catch (error) {
@@ -77,6 +79,26 @@ const Register: React.FC = () => {
                     </div>
 
                     <div>
+                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                            Username
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <User className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <input
+                                id="username"
+                                type="text"
+                                required
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
+                                placeholder="john.doe"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                             Email Address
                         </label>
@@ -116,6 +138,22 @@ const Register: React.FC = () => {
                         </div>
                     </div>
 
+                    <div>
+                        <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                            Role
+                        </label>
+                        <select
+                            id="role"
+                            value={role}
+                            onChange={(e) => setRole(e.target.value as 'USER' | 'ADMIN')}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
+                        >
+                            <option value="USER">User</option>
+                            <option value="ADMIN">Admin</option>
+                        </select>
+                    </div>
+
+
                     <button
                         type="submit"
                         disabled={isLoading}
@@ -138,8 +176,8 @@ const Register: React.FC = () => {
                         Sign In
                     </Link>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

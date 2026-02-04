@@ -5,7 +5,7 @@ import { Lock, Mail, Loader2 } from 'lucide-react';
 import { authService } from '../services/authService';
 
 const Login: React.FC = () => {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
@@ -15,12 +15,12 @@ const Login: React.FC = () => {
         setIsLoading(true);
 
         try {
-            if (!email || !password) {
-                toast.error('Please enter both email and password.');
+            if (!username || !password) {
+                toast.error('Please enter both username and password.');
                 return;
             }
 
-            await authService.login({ email, password });
+            await authService.login({ username, password });
             toast.success('Login Successful');
             navigate('/dashboard');
         } catch (error) {
@@ -44,21 +44,21 @@ const Login: React.FC = () => {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                            Email Address
+                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                            Username
                         </label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <Mail className="h-5 w-5 text-gray-400" />
                             </div>
                             <input
-                                id="email"
-                                type="email"
+                                id="username"
+                                type="text"
                                 required
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                                 className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
-                                placeholder="you@example.com"
+                                placeholder="john.doe"
                             />
                         </div>
                     </div>

@@ -1,39 +1,48 @@
 import api, { AUTH_TOKEN_KEY } from '../lib/api';
 
 export interface LoginRequest {
-    email: string;
+    username: string;
     password: string;
 }
 
 export interface RegisterRequest {
     firstname: string;
     lastname: string;
+    username: string;
     email: string;
     password: string;
+    role: 'USER' | 'ADMIN';
 }
 
 export interface AuthResponse {
     token: string;
-    // Add other user fields if returned by backend, e.g.,
-    // user: {
-    //   id: string;
-    //   email: string;
-    //   firstName: string;
-    //   lastName: string;
-    // }
 }
 
+// ... types updated below ...
+
 export const authService = {
-    login: async (credentials: LoginRequest): Promise<AuthResponse> => {
-        const response = await api.post<AuthResponse>('/auth/authenticate', credentials);
+    login: async (credentials: { username: string, password: string }): Promise<AuthResponse> => {
+        const payload: LoginRequest = {
+            username: credentials.username,
+            password: credentials.password
+        };
+        const response = await api.post<AuthResponse>('/auth/authenticate', payload);
         if (response.data.token) {
             localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
         }
         return response.data;
     },
 
-    register: async (data: RegisterRequest): Promise<AuthResponse> => {
-        const response = await api.post<AuthResponse>('/auth/register', data);
+    register: async (data: { firstname: string, lastname: string, username: string, email: string, password: string, role?: 'USER' | 'ADMIN' }): Promise<AuthResponse> => {
+        const payload: RegisterRequest = {
+            firstname: data.firstname,
+            lastname: data.lastname,
+            username: data.username,
+            email: data.email,
+            password: data.password,
+            role: data.role || 'USER'
+        };
+        const response = await api.post<AuthResponse>('/auth/register', payload);
         if (response.data.token) {
             localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
         }

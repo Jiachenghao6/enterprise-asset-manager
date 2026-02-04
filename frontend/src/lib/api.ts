@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_BASE_URL = 'http://localhost:8080/api/v1';
+export const API_BASE_URL = '/api/v1';
 export const AUTH_TOKEN_KEY = 'auth_token';
 
 const api = axios.create({
