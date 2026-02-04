@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import DashboardLayout from './layouts/DashboardLayout';
 import { authService } from './services/authService';
 
 // Simple protected route wrapper
@@ -19,16 +20,26 @@ const App: React.FC = () => {
         <Router>
             <Toaster position="top-right" />
             <Routes>
+                {/* Public routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+
+                {/* Protected routes with DashboardLayout */}
                 <Route
-                    path="/dashboard"
                     element={
                         <ProtectedRoute>
-                            <Dashboard />
+                            <DashboardLayout />
                         </ProtectedRoute>
                     }
-                />
+                >
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    {/* Future routes: */}
+                    {/* <Route path="/assets" element={<Assets />} /> */}
+                    {/* <Route path="/users" element={<Users />} /> */}
+                    {/* <Route path="/settings" element={<Settings />} /> */}
+                </Route>
+
+                {/* Default redirect */}
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </Router>
