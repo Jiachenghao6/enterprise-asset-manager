@@ -25,4 +25,10 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
     List<Asset> findByPurchasePriceBetween(BigDecimal startPrice, BigDecimal endPrice);
 
     List<Asset> findByPurchasePriceGreaterThan(BigDecimal startPrice);
+
+    // Dashboard statistics queries
+    long countByStatus(AssetStatus status);
+
+    // Recent assets query (ordered by creation date, newest first)
+    List<Asset> findTop5ByOrderByCreatedAtDesc();
 }

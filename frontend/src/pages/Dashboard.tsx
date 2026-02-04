@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, Package, DollarSign, Key, CheckCircle, Loader2 } from 'lucide-react';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { AssetStatus } from '../types/asset';
+import AddAssetModal from '../components/AddAssetModal';
 
 /**
  * Stats Card Component
@@ -60,7 +61,8 @@ const formatCurrency = (value: number): string => {
  * Dashboard Page Component
  */
 const Dashboard: React.FC = () => {
-    const { stats, recentAssets, isLoading, error } = useDashboardStats();
+    const { stats, recentAssets, isLoading, error, refetch } = useDashboardStats();
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     if (isLoading) {
         return (
@@ -86,7 +88,10 @@ const Dashboard: React.FC = () => {
                     <h1 className="text-2xl font-bold text-gray-900">Welcome back!</h1>
                     <p className="text-gray-500 mt-1">Here's what's happening with your assets today.</p>
                 </div>
-                <button className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                >
                     <Plus size={20} />
                     Add New Asset
                 </button>
@@ -168,6 +173,13 @@ const Dashboard: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Add Asset Modal */}
+            <AddAssetModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onSuccess={refetch}
+            />
         </div>
     );
 };
