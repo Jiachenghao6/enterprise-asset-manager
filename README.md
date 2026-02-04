@@ -1,3 +1,4 @@
+
 # Enterprise Asset Manager (EAM)
 
 > 🎓 **Werkstudent Portfolio Project**
@@ -7,32 +8,36 @@
 
 ## 📋 Projektbeschreibung (Project Overview)
 
-This project is a backend system developed to manage the lifecycle of enterprise assets. It handles asset registration, tracking, and complex financial calculations (Depreciation/Abschreibung). 
+This project is a backend system developed to manage the lifecycle of enterprise assets. It handles asset registration, tracking, and complex financial calculations (Depreciation/Abschreibung).
 
 It is designed to demonstrate:
 - **Clean Architecture** & **SOLID Principles**.
-- **Strategy Design Pattern** for flexible financial algorithms (e.g., swapping calculation logic at runtime).
-- **Type-safe** financial handling using `BigDecimal` to prevent floating-point errors.
+- **Secure Access Control** using JWT (JSON Web Tokens) and Role-Based Access Control (RBAC).
+- **Strategy Design Pattern** for flexible financial algorithms.
+- **Auditing** for tracking data creation and modification.
 
 ---
 
 ## 🏗️ System Architecture & Tech Stack
 
-The system follows a strict **Layered Architecture** (Controller-Service-Repository).
+The system follows a strict **Layered Architecture** secured by a stateless authentication filter chain.
 
 ### 🛠️ Technology Stack
-* **Framework**: Spring Boot 3.x (Java 17+)
+* **Framework**: Spring Boot 4.0.1 (Java 21)
+* **Security**: Spring Security 6, JWT (jjwt)
+* **Documentation**: OpenAPI 3 (Swagger UI)
+* **Database**: PostgreSQL
 * **Build Tool**: Gradle
-* **Database**: H2 (In-Memory for Dev) / JPA (Hibernate)
 * **Testing**: JUnit 5
 
 ### 📊 Architecture Diagram
-The following diagram illustrates the data flow and the integration of the **Strategy Pattern** in the Service Layer.
+The following diagram illustrates the secure data flow:
 
 ```mermaid
 graph TD
     %% Styling
     classDef client fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef security fill:#ff6666,stroke:#333,stroke-width:2px;
     classDef controller fill:#ffcc00,stroke:#333,stroke-width:2px;
     classDef service fill:#66ccff,stroke:#333,stroke-width:2px;
     classDef strategy fill:#99cc99,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
@@ -41,6 +46,10 @@ graph TD
 
     Client(User / API Client):::client
     
+    subgraph Security Layer
+        AuthFilter[JwtAuthenticationFilter]:::security
+    end
+
     subgraph Presentation Layer
         Controller[AssetController]:::controller
     end
@@ -56,17 +65,17 @@ graph TD
     end
 
     subgraph Database
-        DB[(H2 / PostgreSQL)]:::db
+        DB[(PostgreSQL)]:::db
     end
 
     %% Flows
-    Client -->|HTTP GET/POST| Controller
+    Client -->|HTTP Request + Bearer Token| AuthFilter
+    AuthFilter -->|Authenticated| Controller
+    AuthFilter --x|Invalid Token| Client
+    
     Controller -->|DTO| Service
-    
     Service -->|Calculate Value| CalcInterface
-    %% Strategy Pattern Implementation Relationship
     LinearStrat -.->|implements| CalcInterface
-    
     Service -->|CRUD| Repo
     Repo -->|SQL| DB
 
@@ -76,24 +85,32 @@ graph TD
 
 ## 🧩 Key Modules
 
-### 1. Domain Model (Inheritance)
+### 1. Security & Authentication (New)
 
-The system uses a polymorphic data model to distinguish between asset types while sharing common attributes.
+The system implements **stateless authentication** using JWT.
 
-* **`Asset`** (Abstract Base): `purchasePrice`, `purchaseDate`, `name`.
-* **`HardwareAsset`**: Extends `Asset` (adds `serialNumber`, `location`).
-* **`SoftwareAsset`**: Extends `Asset` (adds `licenseKey`, `version`).
+* **Registration/Login**: Public endpoints to obtain a token.
+* **Authorization Filter**: Intercepts requests to validate the `Bearer Token`.
+* **RBAC**: Supports `USER` and `ADMIN` roles.
 
-### 2. Financial Logic (Strategy Pattern)
+### 2. Domain Model (Inheritance)
+
+Polymorphic data model to distinguish between asset types:
+
+* **`Asset`** (Abstract Base): `purchasePrice`, `residualValue`, `usefulLifeYears`.
+* *Audit Fields*: Automatically tracks `createdBy`, `createdAt`, `lastModifiedBy`.
+
+
+* **`HardwareAsset`**: Adds `serialNumber`, `warrantyDate`.
+* **`SoftwareAsset`**: Adds `licenseKey`, `expiryDate`.
+
+### 3. Financial Logic (Strategy Pattern)
 
 Calculates the *Current Value* (Buchwert) of assets dynamically.
 
 * **Interface**: `DepreciationCalculator`
-* **Implementation**: `LinearDepreciation`
-* **Logic**: Calculates value reduction over time linearly.
-* *Why Strategy?* Allows switching between German GAAP (HGB) and IFRS accounting standards at runtime without modifying the core Asset class.
-
-
+* **Logic**: Currently implements `LinearDepreciation`.
+* **Standard**: Compliant with generic accounting principles, switchable at runtime.
 
 ---
 
@@ -101,8 +118,9 @@ Calculates the *Current Value* (Buchwert) of assets dynamically.
 
 ### Prerequisites
 
-* JDK 17 or higher
+* JDK 21
 * Gradle (Wrapper included)
+* PostgreSQL Database
 
 ### Installation
 
@@ -113,53 +131,86 @@ git clone [https://github.com/your-username/enterprise-asset-manager.git](https:
 ```
 
 
-2. **Build the project**
-```bash
-./gradlew clean build
+2. **Configure Database**
+   Update `src/main/resources/application.properties` with your PostgreSQL credentials:
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/your_db
+spring.datasource.username=postgres
+spring.datasource.password=password
 
 ```
 
 
-3. **Run the application**
+3. **Build & Run**
 ```bash
+./gradlew clean build
 ./gradlew bootRun
 
 ```
 
 
-4. **Test the API** (Default port: 8080)
-* **Get all assets**: `GET http://localhost:8080/api/assets`
-* **Create Hardware**:
-```json
-POST http://localhost:8080/api/assets/hardware
+4. **Access API Documentation**
+   Once running, visit Swagger UI to see all endpoints:
+* URL: `http://localhost:8080/swagger-ui/index.html`
+
+
+
+### 🔐 API Usage (Authentication Flow)
+
+Since endpoints are secured, you must first authenticate:
+
+**Step 1: Register a user**
+
+```bash
+POST http://localhost:8080/api/v1/auth/register
 {
-    "name": "MacBook Pro",
-    "purchasePrice": 2500.00,
-    "purchaseDate": "2023-01-01",
-    "serialNumber": "MBP-2023-XM",
-    "location": "Berlin Office"
+  "username": "admin",
+  "password": "password123",
+  "role": "ADMIN"
 }
 
 ```
 
+**Step 2: Login to get Token**
 
+```bash
+POST http://localhost:8080/api/v1/auth/authenticate
+{
+  "username": "admin",
+  "password": "password123"
+}
+// Response: { "token": "eyJhbGciOiJIUzI1Ni..." }
 
+```
 
+**Step 3: Access Assets (with Token)**
+Use the token in the `Authorization` header:
+
+```bash
+GET http://localhost:8080/api/v1/assets
+Header: "Authorization: Bearer eyJhbGciOiJIUzI1Ni..."
+
+```
 
 ---
 
 ## 🧪 Testing
 
-Run unit tests to verify the depreciation logic and architecture rules:
+Run unit tests to verify depreciation logic and security rules:
 
 ```bash
 ./gradlew test
 
 ```
 
+---
+
 ## 📝 Roadmap (Next Sprint)
 
-* [ ] **Refactor**: Add `residualValue` (Restwert) to Asset entity.
-* [ ] **Feature**: Implement Global Exception Handling (`@ControllerAdvice`).
-* [ ] **Docs**: Integrate Swagger/OpenAPI for automatic API documentation.
+* [ ] **Unit Tests**: Increase coverage for Controller and Security layers.
+* [ ] **Dockerization**: Add `Dockerfile` and `docker-compose.yml` for easy deployment.
+* [ ] **Exception Handling**: Enhance global error messages for auth failures.
 
+```
+
+```
