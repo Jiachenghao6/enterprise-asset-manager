@@ -5,6 +5,13 @@ export interface LoginRequest {
     password: string;
 }
 
+export interface RegisterRequest {
+    firstname: string;
+    lastname: string;
+    email: string;
+    password: string;
+}
+
 export interface AuthResponse {
     token: string;
     // Add other user fields if returned by backend, e.g.,
@@ -19,6 +26,14 @@ export interface AuthResponse {
 export const authService = {
     login: async (credentials: LoginRequest): Promise<AuthResponse> => {
         const response = await api.post<AuthResponse>('/auth/authenticate', credentials);
+        if (response.data.token) {
+            localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
+        }
+        return response.data;
+    },
+
+    register: async (data: RegisterRequest): Promise<AuthResponse> => {
+        const response = await api.post<AuthResponse>('/auth/register', data);
         if (response.data.token) {
             localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
         }

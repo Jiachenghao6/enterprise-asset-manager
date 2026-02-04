@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Lock, Mail, Loader2 } from 'lucide-react';
+import { Lock, Mail, User, Loader2 } from 'lucide-react';
 import { authService } from '../services/authService';
 
-const Login: React.FC = () => {
+const Register: React.FC = () => {
+    const [firstname, setFirstname] = useState('');
+    const [lastname, setLastname] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -15,17 +17,17 @@ const Login: React.FC = () => {
         setIsLoading(true);
 
         try {
-            if (!email || !password) {
-                toast.error('Please enter both email and password.');
+            if (!firstname || !lastname || !email || !password) {
+                toast.error('Please fill in all fields.');
                 return;
             }
 
-            await authService.login({ email, password });
-            toast.success('Login Successful');
+            await authService.register({ firstname, lastname, email, password });
+            toast.success('Account created successfully!');
             navigate('/dashboard');
         } catch (error) {
-            console.error('Login failed', error);
-            toast.error('Invalid Credentials');
+            console.error('Registration failed', error);
+            toast.error('Failed to create account. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -36,13 +38,44 @@ const Login: React.FC = () => {
             <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
                 <div className="flex flex-col items-center mb-8">
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                        <Lock className="w-6 h-6 text-blue-600" />
+                        <User className="w-6 h-6 text-blue-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
-                    <p className="text-gray-500 mt-1">Sign in to your account</p>
+                    <h2 className="text-2xl font-bold text-gray-900">Create Account</h2>
+                    <p className="text-gray-500 mt-1">Sign up for a new account</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="firstname" className="block text-sm font-medium text-gray-700 mb-1">
+                                First Name
+                            </label>
+                            <input
+                                id="firstname"
+                                type="text"
+                                required
+                                value={firstname}
+                                onChange={(e) => setFirstname(e.target.value)}
+                                className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
+                                placeholder="John"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="lastname" className="block text-sm font-medium text-gray-700 mb-1">
+                                Last Name
+                            </label>
+                            <input
+                                id="lastname"
+                                type="text"
+                                required
+                                value={lastname}
+                                onChange={(e) => setLastname(e.target.value)}
+                                className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
+                                placeholder="Doe"
+                            />
+                        </div>
+                    </div>
+
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                             Email Address
@@ -91,18 +124,18 @@ const Login: React.FC = () => {
                         {isLoading ? (
                             <>
                                 <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                                Signing in...
+                                Creating Account...
                             </>
                         ) : (
-                            'Sign In'
+                            'Sign Up'
                         )}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center text-sm">
-                    <span className="text-gray-600">Don't have an account?</span>{' '}
-                    <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-                        Sign Up
+                    <span className="text-gray-600">Already have an account?</span>{' '}
+                    <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                        Sign In
                     </Link>
                 </div>
             </div>
@@ -110,4 +143,4 @@ const Login: React.FC = () => {
     );
 };
 
-export default Login;
+export default Register;
