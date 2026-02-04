@@ -1,31 +1,36 @@
-import { useState } from 'react'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import { authService } from './services/authService';
 
-function App() {
-    const [count, setCount] = useState(0)
+// Simple protected route wrapper
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    if (!authService.isAuthenticated()) {
+        return <Navigate to="/login" replace />;
+    }
+    return <>{children}</>;
+};
 
+const App: React.FC = () => {
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-            <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-                <h1 className="text-3xl font-bold text-blue-600 mb-4">
-                    Enterprise Asset Manager
-                </h1>
-                <p className="text-gray-600 mb-6">
-                    Frontend initialized with React, TypeScript, Vite, and Tailwind CSS.
-                </p>
-                <div className="card">
-                    <button
-                        onClick={() => setCount((count) => count + 1)}
-                        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition-colors"
-                    >
-                        count is {count}
-                    </button>
-                    <p className="mt-4 text-sm text-gray-500">
-                        Edit <code>src/App.tsx</code> and save to test HMR
-                    </p>
-                </div>
-            </div>
-        </div>
-    )
-}
+        <Router>
+            <Toaster position="top-right" />
+            <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+        </Router>
+    );
+};
 
-export default App
+export default App;
