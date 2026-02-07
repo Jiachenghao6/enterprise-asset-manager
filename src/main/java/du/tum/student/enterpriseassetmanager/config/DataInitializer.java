@@ -20,6 +20,8 @@ public class DataInitializer implements CommandLineRunner {
         // 检查是否已经有 Admin 用户，如果没有，创建一个默认的
         if (userRepository.findByUsername("admin").isEmpty()) {
             User admin = new User();
+            admin.setFirstname("Admin"); // ✅ 添加这行
+            admin.setLastname("User");
             admin.setUsername("admin");
             admin.setEmail("admin@example.com"); // 必须设置邮箱，否则违反非空约束
             admin.setPassword(passwordEncoder.encode("admin123")); // 默认密码
