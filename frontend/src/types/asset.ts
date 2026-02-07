@@ -24,6 +24,13 @@ export interface Asset {
     createdAt: string; // ISO datetime string (LocalDateTime)
     lastModifiedBy?: string;
     lastModifiedAt?: string;
+    assignedTo?: UserSummary | null;
+}
+
+export interface UserSummary {
+    id: number;
+    username: string;
+    email?: string;
 }
 
 /**

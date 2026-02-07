@@ -1,6 +1,11 @@
 import api from '../lib/api';
-import { DashboardStats, Asset, HardwareAsset, SoftwareAsset, RecentAsset } from '../types/asset';
+import { DashboardStats, Asset, HardwareAsset, SoftwareAsset, RecentAsset, AssetStatus } from '../types/asset';
 
+// 新增：搜索参数接口
+export interface AssetSearchParams {
+    query?: string;
+    status?: AssetStatus | ''; // 空字符串表示“全部”
+}
 /**
  * Asset Service for API calls
  */
@@ -34,6 +39,37 @@ export const assetService = {
      */
     getAllAssets: async (): Promise<Asset[]> => {
         const response = await api.get<Asset[]>('/assets');
+        return response.data;
+    },
+
+    /**
+     * Search and Filter Assets (高级搜索)
+     */
+    searchAssets: async (params: AssetSearchParams): Promise<Asset[]> => {
+        const response = await api.get<Asset[]>('/assets/search', { params });
+        return response.data;
+    },
+
+    /**
+     * Update Asset (更新资产)
+     */
+    updateAsset: async (id: number, data: Partial<Asset>): Promise<Asset> => {
+        const response = await api.put<Asset>(`/assets/${id}`, data);
+        return response.data;
+    },
+
+    /**
+     * Delete Asset (软删除)
+     */
+    deleteAsset: async (id: number): Promise<void> => {
+        await api.delete(`/assets/${id}`);
+    },
+
+    /**
+     * Assign Asset to User (分配资产)
+     */
+    assignAsset: async (assetId: number, userId: number): Promise<Asset> => {
+        const response = await api.post<Asset>(`/assets/${assetId}/assign`, { userId });
         return response.data;
     },
 
