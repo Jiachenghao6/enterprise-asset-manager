@@ -6,7 +6,10 @@ import du.tum.student.enterpriseassetmanager.domain.HardwareAsset;
 import du.tum.student.enterpriseassetmanager.domain.SoftwareAsset;
 import du.tum.student.enterpriseassetmanager.service.AssetService;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import du.tum.student.enterpriseassetmanager.domain.AssetStatus;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -46,5 +49,12 @@ public class AssetController {
     @GetMapping("/{id}/value")
     public BigDecimal getAssetValue(@PathVariable Long id) {
         return assetService.calculateValue(id);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Asset>> searchAssets(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) AssetStatus status) {
+        return ResponseEntity.ok(assetService.searchAssets(query, status));
     }
 }

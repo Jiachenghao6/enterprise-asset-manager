@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // [修改1] 引入 useEffect
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
     Home,
@@ -12,12 +12,16 @@ import {
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { jwtDecode } from 'jwt-decode';
+// [修复 1] 引入正确的 Token Key
+import { AUTH_TOKEN_KEY } from '../lib/api';
 
-// [修改2] 定义 Token 的结构，方便 TypeScript 提示
 interface JwtPayload {
-    sub: string; // 用户名通常存在 sub 字段
+    sub: string; // Username
     role: string;
     exp: number;
+    // 如果后续后端加了 firstname/lastname，可以在这里加定义
+    firstname?: string;
+    lastname?: string;
 }
 
 interface NavItem {
@@ -29,6 +33,7 @@ interface NavItem {
 const navItems: NavItem[] = [
     { to: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
     { to: '/assets', icon: <Box size={20} />, label: 'Assets' },
+    // 如果你想让普通用户看不到 Users 菜单，可以在这里加逻辑判断
     { to: '/users', icon: <Users size={20} />, label: 'Users' },
     { to: '/settings', icon: <Settings size={20} />, label: 'Settings' },
 ];
@@ -39,30 +44,35 @@ const DashboardLayout: React.FC = () => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // [修改3] 新增状态：存储用户名
+    // 默认显示 User，直到解析成功
     const [username, setUsername] = useState<string>('User');
 
-    // [修改4] 核心逻辑：加载时解析 Token
     useEffect(() => {
-        const token = localStorage.getItem('token');
+        // [修复 2] 使用统一的 Key 获取 Token
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+
+        console.log("🔍 Debug: Checking Token...", token ? "Found" : "Missing");
+
         if (token) {
             try {
-                // 解析 Token
                 const decoded = jwtDecode<JwtPayload>(token);
-                // 如果 Token 里有 sub (用户名)，就更新状态
+                console.log("✅ Debug: Decoded Token:", decoded);
+
+                // [修复 3] 优先显示 sub (用户名)，如果有其他字段也可以在这里扩展
                 if (decoded.sub) {
                     setUsername(decoded.sub);
                 }
             } catch (error) {
-                console.error("Token decode failed", error);
-                // 解析失败通常意味着 Token 坏了，也可以选择这里 logout
+                console.error("❌ Debug: Token decode failed", error);
+                // 如果 Token 坏了，也可以考虑踢出用户
+                // authService.logout();
+                // navigate('/login');
             }
         }
     }, []);
 
-    // [修改5] 小工具：获取首字母 (例如 "Admin" -> "A")
     const getInitials = (name: string) => {
-        return name ? name.charAt(0).toUpperCase() : 'U';
+        return name && name !== 'User' ? name.charAt(0).toUpperCase() : 'U';
     };
 
     const handleLogout = () => {
@@ -70,7 +80,6 @@ const DashboardLayout: React.FC = () => {
         navigate('/login');
     };
 
-    // Get current page title from path
     const getPageTitle = () => {
         const path = location.pathname;
         const item = navItems.find(nav => nav.to === path);
@@ -93,7 +102,6 @@ const DashboardLayout: React.FC = () => {
         w-64 bg-gray-900 text-white transform transition-transform duration-200 ease-in-out
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-                {/* Logo/Brand */}
                 <div className="h-16 flex items-center justify-between px-6 border-b border-gray-800">
                     <h1 className="text-xl font-bold text-white">Asset Manager</h1>
                     <button
@@ -104,7 +112,6 @@ const DashboardLayout: React.FC = () => {
                     </button>
                 </div>
 
-                {/* Navigation */}
                 <nav className="mt-6 px-3">
                     <ul className="space-y-1">
                         {navItems.map((item) => (
@@ -131,9 +138,7 @@ const DashboardLayout: React.FC = () => {
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-w-0">
-                {/* TopBar */}
                 <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 sticky top-0 z-10">
-                    {/* Left side - Mobile menu button + Page title */}
                     <div className="flex items-center gap-4">
                         <button
                             className="lg:hidden text-gray-600 hover:text-gray-900"
@@ -144,22 +149,20 @@ const DashboardLayout: React.FC = () => {
                         <h2 className="text-xl font-semibold text-gray-800">{getPageTitle()}</h2>
                     </div>
 
-                    {/* Right side - User Profile Dropdown */}
                     <div className="relative">
                         <button
                             className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
                         >
                             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                {/* [修改6] 这里改成动态的首字母 */}
+                                {/* 显示首字母 */}
                                 <span className="text-white text-sm font-medium">{getInitials(username)}</span>
                             </div>
-                            {/* [修改7] 这里改成动态的用户名 */}
+                            {/* 显示完整用户名 */}
                             <span className="hidden sm:block text-sm font-medium text-gray-700">{username}</span>
                             <ChevronDown size={16} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
                         </button>
 
-                        {/* Dropdown Menu */}
                         {isProfileOpen && (
                             <>
                                 <div
@@ -180,7 +183,6 @@ const DashboardLayout: React.FC = () => {
                     </div>
                 </header>
 
-                {/* Page Content */}
                 <main className="flex-1 p-4 lg:p-6 overflow-auto">
                     <Outlet />
                 </main>

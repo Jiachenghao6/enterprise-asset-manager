@@ -3,6 +3,7 @@ package du.tum.student.enterpriseassetmanager.repository;
 import du.tum.student.enterpriseassetmanager.domain.Asset;
 import du.tum.student.enterpriseassetmanager.domain.AssetStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -10,7 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Repository
-public interface AssetRepository extends JpaRepository<Asset, Long> {
+public interface AssetRepository extends JpaRepository<Asset, Long>, JpaSpecificationExecutor<Asset> {
 
     List<Asset> findByStatus(AssetStatus status);
 
