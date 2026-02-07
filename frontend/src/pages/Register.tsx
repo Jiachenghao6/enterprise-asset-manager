@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Lock, Mail, User, Loader2 } from 'lucide-react';
+import { Lock, Mail, User, Loader2, Type } from 'lucide-react'; // 补上 Type 图标用于名字
 import { authService } from '../services/authService';
 
 const Register: React.FC = () => {
@@ -10,7 +10,8 @@ const Register: React.FC = () => {
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState<'USER' | 'ADMIN'>('USER');
+    // ❌ [删除] const [role, setRole] ... 我们不再允许用户自己选角色
+
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -21,10 +22,19 @@ const Register: React.FC = () => {
         try {
             if (!firstname || !lastname || !username || !email || !password) {
                 toast.error('Please fill in all fields.');
+                setIsLoading(false); // 记得这里要重置 loading
                 return;
             }
 
-            await authService.register({ firstname, lastname, username, email, password, role });
+            // ✅ [修改] 调用注册时，只传这5个字段，不再传 role
+            await authService.register({
+                firstname,
+                lastname,
+                username,
+                email,
+                password
+            });
+
             toast.success('Account created successfully!');
             navigate('/dashboard');
         } catch (error) {
@@ -47,57 +57,49 @@ const Register: React.FC = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* First Name & Last Name */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label htmlFor="firstname" className="block text-sm font-medium text-gray-700 mb-1">
                                 First Name
                             </label>
-                            <input
-                                id="firstname"
-                                type="text"
-                                required
-                                value={firstname}
-                                onChange={(e) => setFirstname(e.target.value)}
-                                className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
-                                placeholder="John"
-                            />
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Type className="h-4 w-4 text-gray-400" />
+                                </div>
+                                <input
+                                    id="firstname"
+                                    type="text"
+                                    required
+                                    value={firstname}
+                                    onChange={(e) => setFirstname(e.target.value)}
+                                    className="pl-9 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
+                                    placeholder="John"
+                                />
+                            </div>
                         </div>
                         <div>
                             <label htmlFor="lastname" className="block text-sm font-medium text-gray-700 mb-1">
                                 Last Name
                             </label>
-                            <input
-                                id="lastname"
-                                type="text"
-                                required
-                                value={lastname}
-                                onChange={(e) => setLastname(e.target.value)}
-                                className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
-                                placeholder="Doe"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                            Username
-                        </label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <User className="h-5 w-5 text-gray-400" />
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Type className="h-4 w-4 text-gray-400" />
+                                </div>
+                                <input
+                                    id="lastname"
+                                    type="text"
+                                    required
+                                    value={lastname}
+                                    onChange={(e) => setLastname(e.target.value)}
+                                    className="pl-9 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
+                                    placeholder="Doe"
+                                />
                             </div>
-                            <input
-                                id="username"
-                                type="text"
-                                required
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
-                                placeholder="john.doe"
-                            />
                         </div>
                     </div>
 
+                    {/* Email */}
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                             Email Address
@@ -118,6 +120,28 @@ const Register: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Username */}
+                    <div>
+                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                            Username
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <User className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <input
+                                id="username"
+                                type="text"
+                                required
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="pl-10 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
+                                placeholder="john.doe"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Password */}
                     <div>
                         <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                             Password
@@ -138,21 +162,7 @@ const Register: React.FC = () => {
                         </div>
                     </div>
 
-                    <div>
-                        <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                            Role
-                        </label>
-                        <select
-                            id="role"
-                            value={role}
-                            onChange={(e) => setRole(e.target.value as 'USER' | 'ADMIN')}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm py-2 px-3 border"
-                        >
-                            <option value="USER">User</option>
-                            <option value="ADMIN">Admin</option>
-                        </select>
-                    </div>
-
+                    {/* ❌ [删除] Role Select UI 整个块被移除了 */}
 
                     <button
                         type="submit"

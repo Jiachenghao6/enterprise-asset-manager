@@ -1,12 +1,17 @@
 package du.tum.student.enterpriseassetmanager.service;
 
 import du.tum.student.enterpriseassetmanager.controller.auth.AuthenticationRequest;
+import java.util.HashMap;
+import java.util.Map;
 import du.tum.student.enterpriseassetmanager.controller.auth.AuthenticationResponse;
 import du.tum.student.enterpriseassetmanager.controller.auth.RegisterRequest;
 import du.tum.student.enterpriseassetmanager.domain.Role;
 import du.tum.student.enterpriseassetmanager.domain.User;
 import du.tum.student.enterpriseassetmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import java.util.HashMap;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -32,14 +37,17 @@ public class AuthenticationService {
                                 // ⚠️ 必须加密密码！
                                 .password(passwordEncoder.encode(request.getPassword()))
                                 // 如果请求没传角色，默认给 USER
-                                .role(request.getRole() != null ? request.getRole() : Role.USER)
+                                .role(Role.USER)
                                 .build();
 
                 // 2. 保存到数据库
                 repository.save(user);
 
                 // 3. 既然注册成功了，直接发个 Token 给他，让他免登录直接用
-                var jwtToken = jwtService.generateToken(user);
+                Map<String, Object> extraClaims = new HashMap<>();
+                extraClaims.put("role", user.getRole().name());
+
+                var jwtToken = jwtService.generateToken(extraClaims, user);
 
                 return AuthenticationResponse.builder()
                                 .token(jwtToken)
@@ -60,8 +68,11 @@ public class AuthenticationService {
                 var user = repository.findByUsername(request.getUsername())
                                 .orElseThrow();
 
+                Map<String, Object> extraClaims = new HashMap<>();
+                extraClaims.put("role", user.getRole().name());
+
                 // 3. 生成 Token
-                var jwtToken = jwtService.generateToken(user);
+                var jwtToken = jwtService.generateToken(extraClaims, user);
 
                 return AuthenticationResponse.builder()
                                 .token(jwtToken)

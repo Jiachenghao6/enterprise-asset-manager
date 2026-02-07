@@ -11,7 +11,6 @@ export interface RegisterRequest {
     username: string;
     email: string;
     password: string;
-    role: 'USER' | 'ADMIN';
 }
 
 export interface AuthResponse {
@@ -33,16 +32,10 @@ export const authService = {
         return response.data;
     },
 
-    register: async (data: { firstname: string, lastname: string, username: string, email: string, password: string, role?: 'USER' | 'ADMIN' }): Promise<AuthResponse> => {
-        const payload: RegisterRequest = {
-            firstname: data.firstname,
-            lastname: data.lastname,
-            username: data.username,
-            email: data.email,
-            password: data.password,
-            role: data.role || 'USER'
-        };
-        const response = await api.post<AuthResponse>('/auth/register', payload);
+    register: async (data: RegisterRequest): Promise<AuthResponse> => {
+        // 直接发送 data，因为接口定义已经和后端 RegisterRequest DTO 匹配了
+        const response = await api.post<AuthResponse>('/auth/register', data);
+
         if (response.data.token) {
             localStorage.setItem(AUTH_TOKEN_KEY, response.data.token);
         }

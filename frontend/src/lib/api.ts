@@ -23,4 +23,25 @@ api.interceptors.request.use(
     }
 );
 
+api.interceptors.response.use(
+    (response) => response, // 如果成功，直接返回
+    (error) => {
+        // 如果后端返回 401 Unauthorized (Token 过期或无效)
+        if (error.response && error.response.status === 401) {
+            console.warn('Session expired. Redirecting to login...');
+
+            // 1. 清除本地 Token
+            localStorage.removeItem('token');
+
+            // 2. 强制跳转回登录页
+            // 注意：这里不能直接用 useNavigate，因为这不是 React 组件。
+            // 使用 window.location.href 是最简单粗暴有效的方法。
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
 export default api;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // [修改1] 引入 useEffect
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
     Home,
@@ -11,6 +11,14 @@ import {
     X
 } from 'lucide-react';
 import { authService } from '../services/authService';
+import { jwtDecode } from 'jwt-decode';
+
+// [修改2] 定义 Token 的结构，方便 TypeScript 提示
+interface JwtPayload {
+    sub: string; // 用户名通常存在 sub 字段
+    role: string;
+    exp: number;
+}
 
 interface NavItem {
     to: string;
@@ -30,6 +38,32 @@ const DashboardLayout: React.FC = () => {
     const location = useLocation();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    // [修改3] 新增状态：存储用户名
+    const [username, setUsername] = useState<string>('User');
+
+    // [修改4] 核心逻辑：加载时解析 Token
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                // 解析 Token
+                const decoded = jwtDecode<JwtPayload>(token);
+                // 如果 Token 里有 sub (用户名)，就更新状态
+                if (decoded.sub) {
+                    setUsername(decoded.sub);
+                }
+            } catch (error) {
+                console.error("Token decode failed", error);
+                // 解析失败通常意味着 Token 坏了，也可以选择这里 logout
+            }
+        }
+    }, []);
+
+    // [修改5] 小工具：获取首字母 (例如 "Admin" -> "A")
+    const getInitials = (name: string) => {
+        return name ? name.charAt(0).toUpperCase() : 'U';
+    };
 
     const handleLogout = () => {
         authService.logout();
@@ -117,9 +151,11 @@ const DashboardLayout: React.FC = () => {
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
                         >
                             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                <span className="text-white text-sm font-medium">U</span>
+                                {/* [修改6] 这里改成动态的首字母 */}
+                                <span className="text-white text-sm font-medium">{getInitials(username)}</span>
                             </div>
-                            <span className="hidden sm:block text-sm font-medium text-gray-700">User</span>
+                            {/* [修改7] 这里改成动态的用户名 */}
+                            <span className="hidden sm:block text-sm font-medium text-gray-700">{username}</span>
                             <ChevronDown size={16} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
                         </button>
 
