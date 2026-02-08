@@ -1,12 +1,17 @@
 package du.tum.student.enterpriseassetmanager.controller;
 
+import du.tum.student.enterpriseassetmanager.controller.dto.UserSummaryDto;
 import du.tum.student.enterpriseassetmanager.domain.Role;
 import du.tum.student.enterpriseassetmanager.domain.User;
 import du.tum.student.enterpriseassetmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import du.tum.student.enterpriseassetmanager.service.UserService;
 
 import java.util.List;
 import java.util.Map;
@@ -19,6 +24,7 @@ import java.util.Map;
 public class AdminUserController {
 
     private final UserRepository userRepository;
+    private final UserService userService;
 
     /**
      * 获取所有用户完整信息 (包含 Role, Email 等)
@@ -46,4 +52,21 @@ public class AdminUserController {
     }
 
     // 可以在这里扩展：禁用用户、重置密码等
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateUserStatus(
+            @PathVariable Long id,
+            @RequestParam boolean enabled,
+            @AuthenticationPrincipal User currentUser // 获取当前登录的操作员
+    ) {
+        // [核心保护] 禁止管理员禁用自己
+        // 如果目标ID等于当前用户ID，且试图设为 false，则拒绝
+        if (currentUser.getId() == id && !enabled) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT) // 使用 409 Conflict 状态码
+                    .body("You cannot disable your own account.");
+        }
+
+        UserSummaryDto updatedUser = userService.updateUserStatus(id, enabled);
+        return ResponseEntity.ok(updatedUser);
+    }
 }

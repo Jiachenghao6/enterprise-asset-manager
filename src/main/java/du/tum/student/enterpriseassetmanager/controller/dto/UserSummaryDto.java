@@ -1,5 +1,6 @@
 package du.tum.student.enterpriseassetmanager.controller.dto;
 
+import du.tum.student.enterpriseassetmanager.domain.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,5 +16,6 @@ public class UserSummaryDto {
     private String firstname;
     private String lastname;
     private String email;
+    private Role role;
     private boolean enabled;
 }

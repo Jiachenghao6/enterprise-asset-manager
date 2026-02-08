@@ -32,6 +32,34 @@ public class UserService {
                 .firstname(user.getFirstname())
                 .lastname(user.getLastname())
                 .email(user.getEmail())
+                .role(user.getRole())
+                .enabled(user.isEnabled())
+                .build();
+    }
+
+    /**
+     * [新增] 更新用户启用状态
+     * 
+     * @param userId  目标用户ID
+     * @param enabled 是否启用
+     * @return 更新后的用户DTO
+     */
+    public UserSummaryDto updateUserStatus(Long userId, boolean enabled) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        user.setEnabled(enabled);
+        User savedUser = userRepository.save(user);
+
+        // 返回更新后的 DTO
+        return UserSummaryDto.builder()
+                .id(savedUser.getId())
+                .username(savedUser.getUsername())
+                .firstname(savedUser.getFirstname())
+                .lastname(savedUser.getLastname())
+                .email(savedUser.getEmail())
+                .role(savedUser.getRole())
+                .enabled(savedUser.isEnabled())
                 .build();
     }
 }
