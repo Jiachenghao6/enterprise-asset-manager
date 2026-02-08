@@ -46,6 +46,7 @@ Unlike simple inventory lists, EAM offers **intelligent lifecycle management**�
 ### 🏗️ Architecture Diagrams
 
 #### System Architecture
+
 ```mermaid
 graph TD
     %% ==========================================
@@ -182,8 +183,9 @@ graph TD
     class AuthDTOs,AssetDTOs,SearchDTOs,UserDTOs dto;
     class AuthCtrl,AssetCtrl,UserCtrl,AdminCtrl,AuthSvc,AssetSvc,UserSvc,JwtSvc,DeprCalc,AssetSpec spring;
     class Postgres,UserTable,AssetTable,HW_Table,SW_Table db;
+```
 
-####Frontend Architecture (前端架构)
+#### Frontend Architecture (前端架构)
 ```mermaid
 graph TD
     %% ==========================================
@@ -308,6 +310,7 @@ graph TD
     class useStats,useAuth logic;
     class AuthSvc,AssetSvc,UserSvc,AdminSvc service;
     class AxiosInstance,Interceptors infra;
+```
 
 ## 🚀 Quick Start
 
