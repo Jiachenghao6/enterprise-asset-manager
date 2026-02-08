@@ -3,14 +3,17 @@ services:
   db:
     image: postgres:16-alpine
     container_name: eam-postgres
+    restart: always  # 推荐：如果数据库挂了自动重启
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=asset_management_db
     ports:
-      - "5432:5432" # 暴露给宿主机，方便你用 DBeaver 查看数据
+      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data # 数据持久化，重启容器数据不丢
+      - postgres_data:/var/lib/postgresql/data
+    networks:  # <---【修复点 1】必须加入同一个网络
+      - eam-network
 
   # 2. 后端服务
   backend:
@@ -18,15 +21,17 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: eam-backend
+    restart: on-failure # 推荐：如果因为数据库没准备好而启动失败，Docker会自动重试
     ports:
       - "8080:8080"
     environment:
-      # 覆盖 application.properties 中的数据库配置
-      # 注意：这里 host 写的是 'db'，对应上面的服务名
+      # 这里的 'db' 对应的是上面服务的名字 (Service Name)，Docker DNS 会自动解析
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/asset_management_db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=password
-      # 这里的 JWT 密钥建议在生产环境中使用 .env 文件管理
+      # <---【建议点 2】必须加这个！否则空数据库启动会报 "relation does not exist"
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update 
+      # JWT 配置
       - APPLICATION_SECURITY_JWT_SECRET_KEY=404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
       - APPLICATION_SECURITY_JWT_EXPIRATION=86400000
     depends_on:
@@ -41,7 +46,7 @@ services:
       dockerfile: Dockerfile
     container_name: eam-frontend
     ports:
-      - "3000:80" # 将容器的 80 端口映射到宿主机的 3000
+      - "3000:80"
     depends_on:
       - backend
     networks:
