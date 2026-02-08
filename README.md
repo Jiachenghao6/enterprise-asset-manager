@@ -1,215 +1,143 @@
+# Enterprise Asset Manager
 
-# Enterprise Asset Manager (EAM)
+> A robust, full-stack solution for orchestrating the complete lifecycle of organizational assets—from acquisition to disposal—with real-time financial auditing and secure access control.
 
-> 🎓 **Werkstudent Portfolio Project**
-> A robust, enterprise-grade RESTful API for managing corporate hardware and software assets, designed with SOLID principles and German engineering standards.
+![Status](https://img.shields.io/badge/Status-Active-success?style=flat-square)
+![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-green?style=flat-square&logo=springboot)
+![React](https://img.shields.io/badge/React-18-blue?style=flat-square&logo=react)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat-square&logo=postgresql)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)
 
----
+## 💡 Introduction
 
-## 📋 Projektbeschreibung (Project Overview)
+**Enterprise Asset Manager (EAM)** bridges the gap between IT operations and financial accountability. It is designed to solve the chaos of spreadsheet-based tracking by providing a centralized, containerized platform for managing Hardware and Software assets.
 
-This project is a backend system developed to manage the lifecycle of enterprise assets. It handles asset registration, tracking, and complex financial calculations (Depreciation/Abschreibung).
+Unlike simple inventory lists, EAM offers **intelligent lifecycle management**—automatically calculating depreciation, tracking assignment history, and ensuring data integrity through strictly typed APIs and audit trails. Whether you are tracking laptop serial numbers or software license expirations, EAM provides the visibility needed to optimize resource allocation.
 
-It is designed to demonstrate:
-- **Clean Architecture** & **SOLID Principles**.
-- **Secure Access Control** using JWT (JSON Web Tokens) and Role-Based Access Control (RBAC).
-- **Strategy Design Pattern** for flexible financial algorithms.
-- **Auditing** for tracking data creation and modification.
+## ✨ Key Features
 
----
+* **Unified Asset Registry**: distinct handling for **Hardware** (Serial Numbers) and **Software** (Licenses) with polymorphic data structures.
+* **Real-Time Analytics Dashboard**: Instant visualization of Total Asset Value, Active Licenses, and Availability status.
+* **Advanced Search & Filtering**: Server-side pagination, sorting, and dynamic filtering to handle large datasets efficiently.
+* **Audit & Compliance**: Built-in `AuditingEntityListener` automatically records creator and modifier timestamps for every record.
+* **Lifecycle Automation**: "Soft Delete" functionality preserves historical data by marking assets as `DISPOSED` rather than permanently removing them.
+* **Secure & Stateless**: Full JWT-based authentication flow integrated with Spring Security.
 
-## 🏗️ System Architecture & Tech Stack
+## 🛠 Tech Stack
 
-The system follows a strict **Layered Architecture** secured by a stateless authentication filter chain.
+### **Backend (The Core)**
+* **Framework**: Spring Boot (Web, Data JPA, Validation)
+* **Security**: Spring Security + JWT (Stateless Authentication)
+* **Database**: PostgreSQL 16
+* **Build Tool**: Gradle (Java 21 Toolchain)
+* **Utilities**: Lombok, Jackson
 
-### 🛠️ Technology Stack
-* **Framework**: Spring Boot 4.0.1 (Java 21)
-* **Security**: Spring Security 6, JWT (jjwt)
-* **Documentation**: OpenAPI 3 (Swagger UI)
-* **Database**: PostgreSQL
-* **Build Tool**: Gradle
-* **Testing**: JUnit 5
+### **Frontend (The Interface)**
+* **Framework**: React 18 + TypeScript
+* **Build System**: Vite
+* **Styling**: Tailwind CSS + Lucide React (Icons)
+* **State/Network**: Axios + Custom Hooks
 
-### 📊 Architecture Diagram
-The following diagram illustrates the secure data flow:
+### **Infrastructure**
+* **Containerization**: Docker & Docker Compose
+* **Networking**: Internal Bridge Network (`eam-network`)
 
-```mermaid
-graph TD
-    %% Styling
-    classDef client fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef security fill:#ff6666,stroke:#333,stroke-width:2px;
-    classDef controller fill:#ffcc00,stroke:#333,stroke-width:2px;
-    classDef service fill:#66ccff,stroke:#333,stroke-width:2px;
-    classDef strategy fill:#99cc99,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
-    classDef repo fill:#ff9999,stroke:#333,stroke-width:2px;
-    classDef db fill:#cccccc,stroke:#333,stroke-width:2px;
-
-    Client(User / API Client):::client
-    
-    subgraph Security Layer
-        AuthFilter[JwtAuthenticationFilter]:::security
-    end
-
-    subgraph Presentation Layer
-        Controller[AssetController]:::controller
-    end
-
-    subgraph Business Layer
-        Service[AssetService]:::service
-        CalcInterface{{DepreciationCalculator}}:::strategy
-        LinearStrat[LinearDepreciation]:::strategy
-    end
-
-    subgraph Data Access Layer
-        Repo[AssetRepository]:::repo
-    end
-
-    subgraph Database
-        DB[(PostgreSQL)]:::db
-    end
-
-    %% Flows
-    Client -->|HTTP Request + Bearer Token| AuthFilter
-    AuthFilter -->|Authenticated| Controller
-    AuthFilter --x|Invalid Token| Client
-    
-    Controller -->|DTO| Service
-    Service -->|Calculate Value| CalcInterface
-    LinearStrat -.->|implements| CalcInterface
-    Service -->|CRUD| Repo
-    Repo -->|SQL| DB
-
-```
-
----
-
-## 🧩 Key Modules
-
-### 1. Security & Authentication (New)
-
-The system implements **stateless authentication** using JWT.
-
-* **Registration/Login**: Public endpoints to obtain a token.
-* **Authorization Filter**: Intercepts requests to validate the `Bearer Token`.
-* **RBAC**: Supports `USER` and `ADMIN` roles.
-
-### 2. Domain Model (Inheritance)
-
-Polymorphic data model to distinguish between asset types:
-
-* **`Asset`** (Abstract Base): `purchasePrice`, `residualValue`, `usefulLifeYears`.
-* *Audit Fields*: Automatically tracks `createdBy`, `createdAt`, `lastModifiedBy`.
-
-
-* **`HardwareAsset`**: Adds `serialNumber`, `warrantyDate`.
-* **`SoftwareAsset`**: Adds `licenseKey`, `expiryDate`.
-
-### 3. Financial Logic (Strategy Pattern)
-
-Calculates the *Current Value* (Buchwert) of assets dynamically.
-
-* **Interface**: `DepreciationCalculator`
-* **Logic**: Currently implements `LinearDepreciation`.
-* **Standard**: Compliant with generic accounting principles, switchable at runtime.
-
----
-
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
-
-* JDK 21
-* Gradle (Wrapper included)
-* PostgreSQL Database
+* **Docker** & **Docker Compose** (Recommended)
+* *Or for local dev*: Java 21, Node.js 18+, PostgreSQL
 
 ### Installation
 
-1. **Clone the repository**
-```bash
-git clone [https://github.com/your-username/enterprise-asset-manager.git](https://github.com/your-username/enterprise-asset-manager.git)
+The project is pre-configured with `docker-compose` for a one-step deployment.
 
-```
+1.  **Clone the repository**
+    ```bash
+    git clone [https://github.com/your-username/enterprise-asset-manager.git](https://github.com/your-username/enterprise-asset-manager.git)
+    cd enterprise-asset-manager
+    ```
 
+2.  **Start the Application**
+    ```bash
+    # Builds both backend and frontend images and starts the database
+    docker-compose up --build
+    ```
 
-2. **Configure Database**
-   Update `src/main/resources/application.properties` with your PostgreSQL credentials:
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/your_db
-spring.datasource.username=postgres
-spring.datasource.password=password
+3.  **Access the System**
+    * **Frontend**: [http://localhost:3000](http://localhost:3000)
+    * **Backend API**: [http://localhost:8080/api/v1](http://localhost:8080/api/v1)
+    * **API Docs (Swagger)**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 
-```
+## 💻 Usage
 
+### API Logic Example
+EAM uses a polymorphic API design. Below is an example of how the backend handles asset creation, differentiating between Hardware and Software based on the endpoint.
 
-3. **Build & Run**
-```bash
-./gradlew clean build
-./gradlew bootRun
+```java
+// AssetController.java
+@RestController
+@RequestMapping("api/v1/assets")
+public class AssetController {
 
-```
+    // Dedicated endpoint for Hardware (requires Serial Number)
+    @PostMapping("/hardware")
+    public Asset createHardware(@RequestBody HardwareAsset asset) {
+        return assetService.createAsset(asset);
+    }
 
-
-4. **Access API Documentation**
-   Once running, visit Swagger UI to see all endpoints:
-* URL: `http://localhost:8080/swagger-ui/index.html`
-
-
-
-### 🔐 API Usage (Authentication Flow)
-
-Since endpoints are secured, you must first authenticate:
-
-**Step 1: Register a user**
-
-```bash
-POST http://localhost:8080/api/v1/auth/register
-{
-  "username": "admin",
-  "password": "password123",
-  "role": "ADMIN"
+    // Dedicated endpoint for Software (requires License Key)
+    @PostMapping("/software")
+    public Asset createSoftware(@RequestBody SoftwareAsset asset) {
+        return assetService.createAsset(asset);
+    }
+    
+    // Universal Search with Pagination
+    @GetMapping("/search")
+    public Page<Asset> searchAssets(@ModelAttribute AssetSearchCriteria criteria, Pageable pageable) {
+        return assetService.searchAssets(criteria, pageable);
+    }
 }
 
 ```
 
-**Step 2: Login to get Token**
+### Dashboard View
 
-```bash
-POST http://localhost:8080/api/v1/auth/authenticate
-{
-  "username": "admin",
-  "password": "password123"
-}
-// Response: { "token": "eyJhbGciOiJIUzI1Ni..." }
+The frontend utilizes a custom hook `useDashboardStats` to aggregate financial data:
 
-```
+```typescript
+// Dashboard.tsx
+const { stats } = useDashboardStats();
 
-**Step 3: Access Assets (with Token)**
-Use the token in the `Authorization` header:
-
-```bash
-GET http://localhost:8080/api/v1/assets
-Header: "Authorization: Bearer eyJhbGciOiJIUzI1Ni..."
+// Automatically formats currency based on locale
+<StatCard 
+    title="Total Value" 
+    value={formatCurrency(stats?.totalValue ?? 0)} 
+    icon={<DollarSign />} 
+/>
 
 ```
 
----
+## ⚙️ Configuration
 
-## 🧪 Testing
+The application is configured via environment variables. You can adjust these in `docker-compose.yml`.
 
-Run unit tests to verify depreciation logic and security rules:
+| Variable | Description | Default |
+| --- | --- | --- |
+| `SPRING_DATASOURCE_URL` | PostgreSQL connection URL | `jdbc:postgresql://db:5432/...` |
+| `SPRING_JPA_HIBERNATE_DDL_AUTO` | Database schema management | `update` |
+| `APPLICATION_SECURITY_JWT_SECRET_KEY` | 256-bit key for signing tokens | *(See docker-compose)* |
+| `APPLICATION_SECURITY_JWT_EXPIRATION` | Token validity in milliseconds | `86400000` (24h) |
+| `POSTGRES_DB` | Database Name | `asset_management_db` |
 
-```bash
-./gradlew test
+## 🤝 Contributing
 
-```
-
----
-
-## 📝 Roadmap (Next Sprint)
-
-* [ ] **Unit Tests**: Increase coverage for Controller and Security layers.
-* [ ] **Dockerization**: Add `Dockerfile` and `docker-compose.yml` for easy deployment.
-* [ ] **Exception Handling**: Enhance global error messages for auth failures.
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ```
 
