@@ -42,6 +42,11 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    // === 新增：Enabled 字段 (路线图步骤 1) ===
+    @Builder.Default // 确保使用 Builder 创建时默认值为 true
+    @Column(nullable = false)
+    private boolean enabled = true;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
@@ -62,8 +67,10 @@ public class User implements UserDetails {
         return true; // 密码是否未过期
     }
 
+    // === 修改：isEnabled 方法 (路线图步骤 1) ===
     @Override
     public boolean isEnabled() {
-        return true; // 账户是否启用
+        // 之前硬编码返回 true，现在返回字段值
+        return this.enabled;
     }
 }

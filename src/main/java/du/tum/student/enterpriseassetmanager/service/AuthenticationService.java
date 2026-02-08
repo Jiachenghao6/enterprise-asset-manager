@@ -35,6 +35,7 @@ public class AuthenticationService {
                                 .password(passwordEncoder.encode(request.getPassword()))
                                 // 如果请求没传角色，默认给 USER
                                 .role(Role.USER)
+                                .enabled(true)
                                 .build();
 
                 // 2. 保存到数据库
