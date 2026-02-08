@@ -12,30 +12,51 @@ import {
 } from 'lucide-react';
 import { authService } from '../services/authService';
 import { jwtDecode } from 'jwt-decode';
-// [修复 1] 引入正确的 Token Key
 import { AUTH_TOKEN_KEY } from '../lib/api';
 
 interface JwtPayload {
     sub: string; // Username
-    role: string;
+    role: string; // ADMIN or USER
     exp: number;
-    // 如果后续后端加了 firstname/lastname，可以在这里加定义
     firstname?: string;
     lastname?: string;
 }
 
+// [修改 1] 扩展接口，增加 allowedRoles 字段
 interface NavItem {
     to: string;
     icon: React.ReactNode;
     label: string;
+    allowedRoles?: string[]; // 如果未定义，则所有人可见；否则仅列表中的角色可见
 }
 
+// [修改 2] 配置菜单权限
+// 根据你的要求：Assets, Users, Settings 仅 ADMIN 可见
 const navItems: NavItem[] = [
-    { to: '/dashboard', icon: <Home size={20} />, label: 'Dashboard' },
-    { to: '/assets', icon: <Box size={20} />, label: 'Assets' },
-    // 如果你想让普通用户看不到 Users 菜单，可以在这里加逻辑判断
-    { to: '/users', icon: <Users size={20} />, label: 'Users' },
-    { to: '/settings', icon: <Settings size={20} />, label: 'Settings' },
+    {
+        to: '/dashboard',
+        icon: <Home size={20} />,
+        label: 'Dashboard'
+        // 没有 allowedRoles，表示所有人可见
+    },
+    {
+        to: '/assets',
+        icon: <Box size={20} />,
+        label: 'Assets',
+        allowedRoles: ['ADMIN'] // 仅管理员可见
+    },
+    {
+        to: '/users',
+        icon: <Users size={20} />,
+        label: 'Users',
+        allowedRoles: ['ADMIN'] // 仅管理员可见
+    },
+    {
+        to: '/settings',
+        icon: <Settings size={20} />,
+        label: 'Settings',
+        allowedRoles: ['ADMIN'] // 仅管理员可见
+    },
 ];
 
 const DashboardLayout: React.FC = () => {
@@ -44,29 +65,26 @@ const DashboardLayout: React.FC = () => {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    // 默认显示 User，直到解析成功
     const [username, setUsername] = useState<string>('User');
+    // [修改 3] 新增状态用于存储当前用户角色
+    const [userRole, setUserRole] = useState<string>('');
 
     useEffect(() => {
-        // [修复 2] 使用统一的 Key 获取 Token
         const token = localStorage.getItem(AUTH_TOKEN_KEY);
-
-        console.log("🔍 Debug: Checking Token...", token ? "Found" : "Missing");
 
         if (token) {
             try {
                 const decoded = jwtDecode<JwtPayload>(token);
-                console.log("✅ Debug: Decoded Token:", decoded);
 
-                // [修复 3] 优先显示 sub (用户名)，如果有其他字段也可以在这里扩展
                 if (decoded.sub) {
                     setUsername(decoded.sub);
                 }
+                // [修改 4] 获取并设置角色
+                if (decoded.role) {
+                    setUserRole(decoded.role);
+                }
             } catch (error) {
-                console.error("❌ Debug: Token decode failed", error);
-                // 如果 Token 坏了，也可以考虑踢出用户
-                // authService.logout();
-                // navigate('/login');
+                console.error("Token decode failed", error);
             }
         }
     }, []);
@@ -85,6 +103,15 @@ const DashboardLayout: React.FC = () => {
         const item = navItems.find(nav => nav.to === path);
         return item?.label || 'Dashboard';
     };
+
+    // [修改 5] 核心逻辑：过滤出当前用户可见的菜单项
+    const visibleNavItems = navItems.filter(item => {
+        // 如果菜单没有设置权限限制，或者是当前用户的角色在允许列表中
+        if (!item.allowedRoles || item.allowedRoles.includes(userRole)) {
+            return true;
+        }
+        return false;
+    });
 
     return (
         <div className="min-h-screen bg-gray-100 flex">
@@ -114,7 +141,8 @@ const DashboardLayout: React.FC = () => {
 
                 <nav className="mt-6 px-3">
                     <ul className="space-y-1">
-                        {navItems.map((item) => (
+                        {/* [修改 6] 使用 visibleNavItems 替代 navItems 进行渲染 */}
+                        {visibleNavItems.map((item) => (
                             <li key={item.to}>
                                 <NavLink
                                     to={item.to}
@@ -155,10 +183,8 @@ const DashboardLayout: React.FC = () => {
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
                         >
                             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                                {/* 显示首字母 */}
                                 <span className="text-white text-sm font-medium">{getInitials(username)}</span>
                             </div>
-                            {/* 显示完整用户名 */}
                             <span className="hidden sm:block text-sm font-medium text-gray-700">{username}</span>
                             <ChevronDown size={16} className={`text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
                         </button>
