@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, Package, Code } from 'lucide-react';
+import { X, Package, Code, Layers, Copy, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { assetService } from '../services/assetService';
-import { AssetStatus, Asset } from '../types/asset'; // 确保导入 Asset 类型
+import { AssetStatus, Asset } from '../types/asset';
 
 interface AddAssetModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    assetToEdit?: Asset | null; // [修改] 新增：传入要编辑的资产
+    assetToEdit?: Asset | null;
 }
 
 type AssetType = 'HARDWARE' | 'SOFTWARE';
@@ -16,6 +16,11 @@ type AssetType = 'HARDWARE' | 'SOFTWARE';
 const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSuccess, assetToEdit }) => {
     const [assetType, setAssetType] = useState<AssetType>('HARDWARE');
     const [isLoading, setIsLoading] = useState(false);
+
+    // 批量模式状态
+    const [isBatchMode, setIsBatchMode] = useState(false);
+    const [batchQuantity, setBatchQuantity] = useState('1');
+    const [serialPrefix, setSerialPrefix] = useState(''); // 仅硬件用
 
     // Common fields
     const [name, setName] = useState('');
@@ -34,7 +39,6 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
     const [licenseKey, setLicenseKey] = useState('');
     const [expiryDate, setExpiryDate] = useState('');
 
-    // [修改] 提取重置逻辑，方便复用
     const resetForm = () => {
         setName('');
         setPurchasePrice('');
@@ -47,14 +51,18 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
         setWarrantyDate('');
         setLicenseKey('');
         setExpiryDate('');
-        setAssetType('HARDWARE'); // 默认重置为硬件
+        setAssetType('HARDWARE');
+        setIsBatchMode(false);
+        setBatchQuantity('1');
+        setSerialPrefix('');
     };
 
-    // [修改] 新增 Effect：当 Modal 打开或 assetToEdit 变化时，初始化数据
     useEffect(() => {
         if (isOpen) {
             if (assetToEdit) {
-                // === 编辑模式：回填数据 ===
+                // 编辑模式：强制关闭批量
+                setIsBatchMode(false);
+
                 setName(assetToEdit.name);
                 setPurchasePrice(assetToEdit.purchasePrice.toString());
                 setPurchaseDate(assetToEdit.purchaseDate);
@@ -62,8 +70,6 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
                 setResidualValue(assetToEdit.residualValue.toString());
                 setUsefulLifeYears(assetToEdit.usefulLifeYears.toString());
 
-                // 判断类型并回填特有字段
-                // 依据：检查对象中是否有 serialNumber 字段
                 if ('serialNumber' in assetToEdit) {
                     setAssetType('HARDWARE');
                     setSerialNumber((assetToEdit as any).serialNumber);
@@ -75,7 +81,6 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
                     setExpiryDate((assetToEdit as any).expiryDate || '');
                 }
             } else {
-                // === 新增模式：清空表单 ===
                 resetForm();
             }
         }
@@ -96,41 +101,63 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
             };
 
             if (assetToEdit) {
-                // [修改] === 更新逻辑 ===
-                // 调用 updateAsset 接口 (需要在 service 中实现)
+                // === Update Logic (Single) ===
                 const updateData = {
                     ...commonData,
-                    // 根据当前类型合并特有字段
                     ...(assetType === 'HARDWARE'
                         ? { serialNumber, location, warrantyDate: warrantyDate || undefined }
                         : { licenseKey, expiryDate: expiryDate || undefined })
                 };
-
                 await assetService.updateAsset(assetToEdit.id, updateData);
                 toast.success('Asset updated successfully!');
             } else {
-                // [保留] === 创建逻辑 ===
-                if (assetType === 'HARDWARE') {
-                    await assetService.createHardwareAsset({
-                        ...commonData,
-                        type: 'HARDWARE',
-                        serialNumber,
-                        location,
-                        warrantyDate: warrantyDate || undefined,
-                    });
+                // === Create Logic ===
+                if (isBatchMode) {
+                    const qty = parseInt(batchQuantity, 10);
+
+                    if (assetType === 'HARDWARE') {
+                        // 硬件批量
+                        await assetService.createBatchHardwareAsset({
+                            ...commonData,
+                            location,
+                            warrantyDate: warrantyDate || undefined,
+                            serialNumberPrefix: serialPrefix,
+                            quantity: qty
+                        });
+                        toast.success(`Batch created ${qty} hardware assets!`);
+                    } else {
+                        // [新增] 软件批量
+                        await assetService.createBatchSoftwareAsset({
+                            ...commonData,
+                            licenseKey, // 软件批量共用 Key
+                            expiryDate: expiryDate || undefined,
+                            quantity: qty
+                        });
+                        toast.success(`Batch created ${qty} software licenses!`);
+                    }
                 } else {
-                    await assetService.createSoftwareAsset({
-                        ...commonData,
-                        type: 'SOFTWARE',
-                        licenseKey,
-                        expiryDate: expiryDate || undefined,
-                    });
+                    // 单条创建
+                    if (assetType === 'HARDWARE') {
+                        await assetService.createHardwareAsset({
+                            ...commonData,
+                            type: 'HARDWARE',
+                            serialNumber,
+                            location,
+                            warrantyDate: warrantyDate || undefined,
+                        });
+                    } else {
+                        await assetService.createSoftwareAsset({
+                            ...commonData,
+                            type: 'SOFTWARE',
+                            licenseKey,
+                            expiryDate: expiryDate || undefined,
+                        });
+                    }
+                    toast.success('Asset created successfully!');
                 }
-                toast.success('Asset created successfully!');
             }
 
-            // 成功后处理
-            if (!assetToEdit) resetForm(); // 如果是编辑，保留数据或许更好，或者也清空，这里选择清空
+            if (!assetToEdit) resetForm();
             onSuccess();
             onClose();
         } catch (error) {
@@ -145,37 +172,25 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* Backdrop */}
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-            {/* Modal */}
             <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto m-4 animate-in fade-in zoom-in duration-200">
-                {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50 rounded-t-xl">
                     <h2 className="text-xl font-semibold text-gray-900">
-                        {/* [修改] 动态标题 */}
-                        {assetToEdit ? 'Edit Asset' : 'Add New Asset'}
+                        {assetToEdit ? 'Edit Asset' : (isBatchMode ? `Batch Import ${assetType === 'HARDWARE' ? 'Hardware' : 'Software'}` : 'Add New Asset')}
                     </h2>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
-                    >
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-lg transition-colors">
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
 
-                {/* Asset Type Selector */}
-                {/* [修改] 编辑模式下隐藏类型选择，因为类型通常无法更改 */}
                 {!assetToEdit && (
-                    <div className="p-6 border-b border-gray-200">
+                    <div className="p-6 border-b border-gray-200 space-y-4">
                         <div className="flex gap-4">
                             <button
                                 type="button"
                                 onClick={() => setAssetType('HARDWARE')}
-                                className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all ${assetType === 'HARDWARE'
-                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                    : 'border-gray-200 hover:border-gray-300'
-                                    }`}
+                                className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all ${assetType === 'HARDWARE' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}
                             >
                                 <Package className="w-5 h-5" />
                                 <span className="font-medium">Hardware</span>
@@ -183,171 +198,139 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
                             <button
                                 type="button"
                                 onClick={() => setAssetType('SOFTWARE')}
-                                className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all ${assetType === 'SOFTWARE'
-                                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                    : 'border-gray-200 hover:border-gray-300'
-                                    }`}
+                                className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all ${assetType === 'SOFTWARE' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-gray-300'}`}
                             >
                                 <Code className="w-5 h-5" />
                                 <span className="font-medium">Software</span>
                             </button>
                         </div>
+
+                        {/* 批量模式 Toggle (硬件和软件都可用) */}
+                        <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <div className="flex items-center gap-2">
+                                <div className={`p-1.5 rounded ${isBatchMode ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}>
+                                    <Layers size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-gray-900">Batch Entry Mode</p>
+                                    <p className="text-xs text-gray-500">
+                                        {assetType === 'HARDWARE'
+                                            ? 'Generate sequential SNs'
+                                            : 'Multiple licenses, same Key'}
+                                    </p>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={isBatchMode}
+                                    onChange={(e) => setIsBatchMode(e.target.checked)}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
                     </div>
                 )}
 
-                {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     {/* Common Fields */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                        <input
-                            type="text"
-                            required
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="e.g., MacBook Pro 16"
-                        />
+                        <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder={assetType === 'HARDWARE' ? "e.g. MacBook Pro 16" : "e.g. Adobe Photoshop CC"} />
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Price *</label>
-                            <input
-                                type="number"
-                                required
-                                step="0.01"
-                                value={purchasePrice}
-                                onChange={(e) => setPurchasePrice(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="0.00"
-                            />
+                            <input type="number" required step="0.01" value={purchasePrice} onChange={(e) => setPurchasePrice(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Date *</label>
-                            <input
-                                type="date"
-                                required
-                                value={purchaseDate}
-                                onChange={(e) => setPurchaseDate(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
+                            <input type="date" required value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Residual Value *</label>
-                            <input
-                                type="number"
-                                required
-                                step="0.01"
-                                value={residualValue}
-                                onChange={(e) => setResidualValue(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="0.00"
-                            />
+                            <input type="number" required step="0.01" value={residualValue} onChange={(e) => setResidualValue(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="0.00" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Useful Life (Years) *</label>
-                            <input
-                                type="number"
-                                required
-                                value={usefulLifeYears}
-                                onChange={(e) => setUsefulLifeYears(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="5"
-                            />
+                            <input type="number" required value={usefulLifeYears} onChange={(e) => setUsefulLifeYears(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="5" />
                         </div>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Status *</label>
-                        <select
-                            value={status}
-                            onChange={(e) => setStatus(e.target.value as AssetStatus)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
+                        <select value={status} onChange={(e) => setStatus(e.target.value as AssetStatus)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value={AssetStatus.AVAILABLE}>Available</option>
                             <option value={AssetStatus.ASSIGNED}>Assigned</option>
                             <option value={AssetStatus.BROKEN}>Broken</option>
                             <option value={AssetStatus.REPAIRING}>Repairing</option>
-                            {/* 如果有 DISPOSED 也可以加在这里，但一般不做主动选择 */}
                         </select>
                     </div>
 
-                    {/* Hardware-specific Fields */}
+                    {/* Hardware Fields */}
                     {assetType === 'HARDWARE' && (
                         <>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Serial Number *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={serialNumber}
-                                    onChange={(e) => setSerialNumber(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="SN-XXXXXX"
-                                />
-                            </div>
+                            {isBatchMode ? (
+                                <div className="grid grid-cols-2 gap-4 bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                                    <div>
+                                        <label className="block text-sm font-medium text-indigo-900 mb-1">SN Prefix *</label>
+                                        <input type="text" required value={serialPrefix} onChange={(e) => setSerialPrefix(e.target.value)} className="w-full px-3 py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="e.g. MON-" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-indigo-900 mb-1">Quantity *</label>
+                                        <input type="number" required min="1" max="100" value={batchQuantity} onChange={(e) => setBatchQuantity(e.target.value)} className="w-full px-3 py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="10" />
+                                    </div>
+                                    <div className="col-span-2 text-xs text-indigo-700 flex items-center gap-1">
+                                        <Copy size={12} />
+                                        <span>Will generate: {serialPrefix}001 ...</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Serial Number *</label>
+                                    <input type="text" required value={serialNumber} onChange={(e) => setSerialNumber(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="SN-XXXXXX" />
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Location *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={location}
-                                    onChange={(e) => setLocation(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="Office A, Room 101"
-                                />
+                                <input type="text" required value={location} onChange={(e) => setLocation(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Office A, Room 101" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Warranty Date</label>
-                                <input
-                                    type="date"
-                                    value={warrantyDate}
-                                    onChange={(e) => setWarrantyDate(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
+                                <input type="date" value={warrantyDate} onChange={(e) => setWarrantyDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                             </div>
                         </>
                     )}
 
-                    {/* Software-specific Fields */}
+                    {/* Software Fields */}
                     {assetType === 'SOFTWARE' && (
                         <>
+                            {isBatchMode && (
+                                <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                                    <label className="block text-sm font-medium text-indigo-900 mb-1">Quantity *</label>
+                                    <input type="number" required min="1" max="500" value={batchQuantity} onChange={(e) => setBatchQuantity(e.target.value)} className="w-full px-3 py-2 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="100" />
+                                    <p className="mt-1 text-xs text-indigo-700">Creates {batchQuantity} licenses with the same Key.</p>
+                                </div>
+                            )}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">License Key *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={licenseKey}
-                                    onChange={(e) => setLicenseKey(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="XXXX-XXXX-XXXX-XXXX"
-                                />
+                                <input type="text" required value={licenseKey} onChange={(e) => setLicenseKey(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="XXXX-XXXX-XXXX-XXXX" />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
-                                <input
-                                    type="date"
-                                    value={expiryDate}
-                                    onChange={(e) => setExpiryDate(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                />
+                                <input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                             </div>
                         </>
                     )}
 
-                    {/* Submit Button */}
                     <div className="pt-4">
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full py-2.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                            {/* [修改] 动态按钮文本 */}
-                            {isLoading ? 'Saving...' : (assetToEdit ? 'Save Changes' : 'Create Asset')}
+                        <button type="submit" disabled={isLoading} className="w-full py-2.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 flex items-center justify-center gap-2 transition-colors">
+                            {isLoading ? <><Loader2 size={16} className="animate-spin" /> Processing...</> : (assetToEdit ? 'Save Changes' : (isBatchMode ? `Generate ${batchQuantity} Assets` : 'Create Asset'))}
                         </button>
                     </div>
                 </form>

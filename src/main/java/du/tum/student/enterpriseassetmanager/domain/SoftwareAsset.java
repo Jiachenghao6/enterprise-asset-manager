@@ -16,16 +16,15 @@ import java.math.BigDecimal;
 @Setter
 @NoArgsConstructor
 public class SoftwareAsset extends Asset {
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String licenseKey;
-
 
     @Column(name = "expiry_date")
     private LocalDate expiryDate;
 
     public SoftwareAsset(String name, BigDecimal purchasePrice, LocalDate purchaseDate, AssetStatus status,
-                         BigDecimal residualValue, Integer usefulLifeYears, // 新增参数
-                         String licenseKey, LocalDate expiryDate) {
+            BigDecimal residualValue, Integer usefulLifeYears, // 新增参数
+            String licenseKey, LocalDate expiryDate) {
 
         // 调用更新后的父类构造函数
         super(name, purchasePrice, purchaseDate, status, residualValue, usefulLifeYears);

@@ -1,6 +1,32 @@
 import api from '../lib/api';
 import { DashboardStats, Asset, HardwareAsset, SoftwareAsset, RecentAsset, AssetStatus } from '../types/asset';
 
+// [新增] 软件批量请求接口
+export interface BatchSoftwareRequest {
+    name: string;
+    purchasePrice: number;
+    purchaseDate: string;
+    status: AssetStatus;
+    residualValue: number;
+    usefulLifeYears: number;
+    licenseKey: string;
+    expiryDate?: string;
+    quantity: number;
+}
+
+// [新增] 批量请求的参数接口 (对应后端的 BatchHardwareRequest DTO)
+export interface BatchHardwareRequest {
+    name: string;
+    purchasePrice: number;
+    purchaseDate: string;
+    status: AssetStatus;
+    residualValue: number;
+    usefulLifeYears: number;
+    location: string;
+    warrantyDate?: string;
+    serialNumberPrefix: string;
+    quantity: number;
+}
 // 新增：搜索参数接口
 export interface AssetSearchParams {
     query?: string;
@@ -17,6 +43,8 @@ export const assetService = {
         const response = await api.get<DashboardStats>('/assets/stats');
         return response.data;
     },
+
+
 
     /**
      * Get recent assets (top 5)
@@ -88,4 +116,13 @@ export const assetService = {
         const response = await api.post<Asset>('/assets/software', data);
         return response.data;
     },
+    // --- [Phase 3.2 新增] 批量创建接口 ---
+    createBatchHardwareAsset: async (data: BatchHardwareRequest): Promise<Asset[]> => {
+        const response = await api.post<Asset[]>('/assets/batch/hardware', data);
+        return response.data;
+    },
+    createBatchSoftwareAsset: async (data: BatchSoftwareRequest): Promise<Asset[]> => {
+        const response = await api.post<Asset[]>('/assets/batch/software', data);
+        return response.data;
+    }
 };

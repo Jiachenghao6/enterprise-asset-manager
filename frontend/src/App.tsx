@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import DashboardLayout from './layouts/DashboardLayout';
 import { authService } from './services/authService';
+import Users from './pages/Users';
 
 // Simple protected route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -33,9 +34,10 @@ const App: React.FC = () => {
                     }
                 >
                     <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/users" element={<Users />} />
                     {/* Future routes: */}
                     {/* <Route path="/assets" element={<Assets />} /> */}
-                    {/* <Route path="/users" element={<Users />} /> */}
+
                     {/* <Route path="/settings" element={<Settings />} /> */}
                 </Route>
 

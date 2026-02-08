@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import du.tum.student.enterpriseassetmanager.domain.AssetStatus;
+import du.tum.student.enterpriseassetmanager.controller.dto.BatchHardwareRequest;
+import du.tum.student.enterpriseassetmanager.controller.dto.BatchSoftwareRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -135,5 +137,23 @@ public class AssetController {
             return ResponseEntity.badRequest().build();
         }
         return ResponseEntity.ok(assetService.assignAsset(id, userId));
+    }
+
+    /**
+     * 批量创建硬件资产
+     * POST /api/v1/assets/batch/hardware
+     */
+    @PostMapping("/batch/hardware")
+    public ResponseEntity<List<Asset>> createBatchHardware(@RequestBody BatchHardwareRequest request) {
+        return ResponseEntity.ok(assetService.createBatchHardware(request));
+    }
+
+    /**
+     * 批量创建软件资产
+     * POST /api/v1/assets/batch/software
+     */
+    @PostMapping("/batch/software")
+    public ResponseEntity<List<Asset>> createBatchSoftware(@RequestBody BatchSoftwareRequest request) {
+        return ResponseEntity.ok(assetService.createBatchSoftware(request));
     }
 }
