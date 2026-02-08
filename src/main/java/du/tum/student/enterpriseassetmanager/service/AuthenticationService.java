@@ -9,9 +9,6 @@ import du.tum.student.enterpriseassetmanager.domain.Role;
 import du.tum.student.enterpriseassetmanager.domain.User;
 import du.tum.student.enterpriseassetmanager.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-
-import java.util.HashMap;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;

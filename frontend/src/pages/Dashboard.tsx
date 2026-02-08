@@ -7,6 +7,7 @@ import { useDashboardStats } from '../hooks/useDashboardStats';
 import { AssetStatus, Asset } from '../types/asset';
 import { assetService } from '../services/assetService';
 import AddAssetModal from '../components/AddAssetModal';
+import AssignAssetModal from '../components/AssignAssetModal';
 
 // --- 组件定义保持不变 ---
 interface StatCardProps {
@@ -66,6 +67,10 @@ const Dashboard: React.FC = () => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState<Asset | null>(null); // 用于存储当前正在编辑的资产
 
+    // 2. 新增 Assign Modal 的状态
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [assigningAsset, setAssigningAsset] = useState<Asset | null>(null);
+
     // 3. 获取资产列表的方法 (支持搜索和筛选)
     const fetchAssets = async () => {
         setIsTableLoading(true);
@@ -92,6 +97,12 @@ const Dashboard: React.FC = () => {
     const handleAddClick = () => {
         setEditingAsset(null); // 明确清空编辑对象，表示这是“新增”模式
         setIsAddModalOpen(true);
+    };
+
+    // 3. 新增处理点击 Assign 的函数
+    const handleAssignClick = (asset: Asset) => {
+        setAssigningAsset(asset);
+        setIsAssignModalOpen(true);
     };
 
     // 当搜索词或筛选条件变化时，重新获取列表
@@ -152,7 +163,7 @@ const Dashboard: React.FC = () => {
                     <p className="text-gray-500 mt-1">Manage, track, and assign your organization's assets.</p>
                 </div>
                 <button
-                    onClick={handleAddClick} // [修改] 使用 handleAddClick
+                    onClick={handleAddClick}
                     className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                 >
                     <Plus size={20} />
@@ -175,7 +186,6 @@ const Dashboard: React.FC = () => {
                     <h2 className="text-lg font-semibold text-gray-900">Assets List</h2>
 
                     <div className="flex gap-2 w-full sm:w-auto">
-                        {/* Search Bar */}
                         <div className="relative flex-1 sm:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <input
@@ -187,7 +197,6 @@ const Dashboard: React.FC = () => {
                             />
                         </div>
 
-                        {/* Status Filter */}
                         <div className="relative sm:w-40">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <select
@@ -267,17 +276,19 @@ const Dashboard: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {/* --- [修改 4] Assign Button --- */}
                                                 <button
                                                     title="Assign User"
                                                     className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                                    onClick={() => console.log('Assign clicked', asset.id)}
+                                                    onClick={() => handleAssignClick(asset)} // 绑定点击事件
                                                 >
                                                     <UserPlus size={16} />
                                                 </button>
+
                                                 <button
                                                     title="Edit"
                                                     className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-                                                    onClick={() => handleEditClick(asset)} // [修改] 调用 handleEditClick
+                                                    onClick={() => handleEditClick(asset)}
                                                 >
                                                     <Edit size={16} />
                                                 </button>
@@ -301,9 +312,17 @@ const Dashboard: React.FC = () => {
             {/* Add/Edit Asset Modal */}
             <AddAssetModal
                 isOpen={isAddModalOpen}
-                onClose={handleModalClose} // [修改] 使用 handleModalClose
+                onClose={handleModalClose}
                 onSuccess={handleAddSuccess}
-                assetToEdit={editingAsset} // [修改] 传递当前编辑对象
+                assetToEdit={editingAsset}
+            />
+
+            {/* --- [新增 5] Assign Asset Modal --- */}
+            <AssignAssetModal
+                isOpen={isAssignModalOpen}
+                onClose={() => setIsAssignModalOpen(false)}
+                onSuccess={handleAddSuccess}
+                asset={assigningAsset}
             />
         </div>
     );

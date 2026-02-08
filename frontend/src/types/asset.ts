@@ -80,3 +80,12 @@ export interface RecentAsset {
     currentValue: number;
     createdAt: string;
 }
+
+// 在 UserSummary 中补充字段，与后端 UserSummaryDto 对应
+export interface UserSummary {
+    id: number;
+    username: string;
+    firstname?: string; // 新增
+    lastname?: string;  // 新增
+    email?: string;
+}
