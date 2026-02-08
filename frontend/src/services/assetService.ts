@@ -1,5 +1,5 @@
 import api from '../lib/api';
-import { DashboardStats, Asset, HardwareAsset, SoftwareAsset, RecentAsset, AssetStatus } from '../types/asset';
+import { DashboardStats, Asset, HardwareAsset, SoftwareAsset, RecentAsset, AssetStatus, Page, AssetSearchParams } from '../types/asset';
 
 // [新增] 软件批量请求接口
 export interface BatchSoftwareRequest {
@@ -27,11 +27,7 @@ export interface BatchHardwareRequest {
     serialNumberPrefix: string;
     quantity: number;
 }
-// 新增：搜索参数接口
-export interface AssetSearchParams {
-    query?: string;
-    status?: AssetStatus | ''; // 空字符串表示“全部”
-}
+
 /**
  * Asset Service for API calls
  */
@@ -65,16 +61,25 @@ export const assetService = {
     /**
      * Get all assets
      */
-    getAllAssets: async (): Promise<Asset[]> => {
-        const response = await api.get<Asset[]>('/assets');
+    getAllAssets: async (page = 0, size = 10): Promise<Page<Asset>> => {
+        const response = await api.get<Page<Asset>>('/assets', {
+            params: { page, size }
+        });
         return response.data;
     },
 
-    /**
-     * Search and Filter Assets (高级搜索)
-     */
-    searchAssets: async (params: AssetSearchParams): Promise<Asset[]> => {
-        const response = await api.get<Asset[]>('/assets/search', { params });
+    // [修改后] 返回 Page<Asset>
+    searchAssets: async (params: AssetSearchParams): Promise<Page<Asset>> => {
+        const response = await api.get<Page<Asset>>('/assets/search', {
+            params: {
+                ...params,
+                // 确保分页参数有默认值
+                page: params.page ?? 0,
+                size: params.size ?? 10,
+                sortBy: params.sortBy ?? 'id',
+                sortDir: params.sortDir ?? 'asc'
+            }
+        });
         return response.data;
     },
 

@@ -22,6 +22,9 @@ import du.tum.student.enterpriseassetmanager.domain.User;
 import du.tum.student.enterpriseassetmanager.repository.AssetSpecification; // [新增]
 import org.springframework.data.jpa.domain.Specification; // [新增]
 import du.tum.student.enterpriseassetmanager.controller.dto.BatchSoftwareRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import du.tum.student.enterpriseassetmanager.controller.dto.AssetSearchCriteria;
 
 @Service
 @RequiredArgsConstructor
@@ -30,8 +33,8 @@ public class AssetService {
     private final UserRepository userRepository; // [新增] 注入 UserRepository
     private final DepreciationCalculator depreciationCalculator;
 
-    public List<Asset> findAllAssets() {
-        return assetRepository.findAll();
+    public Page<Asset> findAllAssets(Pageable pageable) {
+        return assetRepository.findAll(pageable);
     }
 
     public Asset createAsset(Asset asset) {
@@ -78,9 +81,9 @@ public class AssetService {
         return assetRepository.save(asset);
     }
 
-    public List<Asset> searchAssets(String query, AssetStatus status) {
-        Specification<Asset> spec = AssetSpecification.filterBy(query, status);
-        return assetRepository.findAll(spec);
+    public Page<Asset> searchAssets(AssetSearchCriteria criteria, Pageable pageable) {
+        Specification<Asset> spec = AssetSpecification.filterBy(criteria);
+        return assetRepository.findAll(spec, pageable);
     }
 
     public BigDecimal calculateValue(long assetId) {

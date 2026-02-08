@@ -89,3 +89,31 @@ export interface UserSummary {
     lastname?: string;  // 新增
     email?: string;
 }
+// [Phase 3 新增] 通用分页响应接口 (对应后端的 Page<T>)
+export interface Page<T> {
+    content: T[];          // 数据列表
+    totalPages: number;    // 总页数
+    totalElements: number; // 总条数
+    size: number;          // 每页大小
+    number: number;        // 当前页码 (从0开始)
+    first: boolean;
+    last: boolean;
+    empty: boolean;
+}
+
+// [Phase 3 修改] 升级搜索参数接口
+export interface AssetSearchParams {
+    // 原有的
+    query?: string;
+    status?: AssetStatus | '';
+
+    // [Phase 2 新增] 精准搜索
+    serialNumber?: string;
+    assignedToUserId?: number;
+
+    // [Phase 1 新增] 分页与排序
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: 'asc' | 'desc';
+}

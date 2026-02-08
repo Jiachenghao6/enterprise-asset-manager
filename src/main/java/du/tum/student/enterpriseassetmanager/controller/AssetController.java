@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import du.tum.student.enterpriseassetmanager.domain.AssetStatus;
+import du.tum.student.enterpriseassetmanager.controller.dto.AssetSearchCriteria;
 import du.tum.student.enterpriseassetmanager.controller.dto.BatchHardwareRequest;
 import du.tum.student.enterpriseassetmanager.controller.dto.BatchSoftwareRequest;
 
@@ -17,6 +18,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map; // [新增] 引入 Map
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("api/v1/assets")
@@ -36,8 +42,20 @@ public class AssetController {
     }
 
     @GetMapping
-    public List<Asset> getAllAssets() {
-        return assetService.findAllAssets();
+    public Page<Asset> getAllAssets(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        // 1. 处理排序方向
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+
+        // 2. 构建 Pageable 对象 (核心)
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        // 3. 调用 Service
+        return assetService.findAllAssets(pageable);
     }
 
     @GetMapping("/stats")
@@ -56,10 +74,20 @@ public class AssetController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<Asset>> searchAssets(
-            @RequestParam(required = false) String query,
-            @RequestParam(required = false) AssetStatus status) {
-        return ResponseEntity.ok(assetService.searchAssets(query, status));
+    public ResponseEntity<Page<Asset>> searchAssets(
+            // [修改] 使用 @ModelAttribute 自动封装参数到 DTO
+            @ModelAttribute AssetSearchCriteria criteria,
+
+            // 分页参数保持不变
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        return ResponseEntity.ok(assetService.searchAssets(criteria, pageable));
     }
     // ==========================================
     // Phase 2 新增接口 (解决 404 问题)
