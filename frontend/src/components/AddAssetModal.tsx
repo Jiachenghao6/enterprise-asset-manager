@@ -1,18 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Package, Code } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { assetService } from '../services/assetService';
-import { AssetStatus } from '../types/asset';
+import { AssetStatus, Asset } from '../types/asset'; // 确保导入 Asset 类型
 
 interface AddAssetModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    assetToEdit?: Asset | null; // [修改] 新增：传入要编辑的资产
 }
 
 type AssetType = 'HARDWARE' | 'SOFTWARE';
 
-const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSuccess, assetToEdit }) => {
     const [assetType, setAssetType] = useState<AssetType>('HARDWARE');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -33,6 +34,7 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
     const [licenseKey, setLicenseKey] = useState('');
     const [expiryDate, setExpiryDate] = useState('');
 
+    // [修改] 提取重置逻辑，方便复用
     const resetForm = () => {
         setName('');
         setPurchasePrice('');
@@ -45,7 +47,39 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
         setWarrantyDate('');
         setLicenseKey('');
         setExpiryDate('');
+        setAssetType('HARDWARE'); // 默认重置为硬件
     };
+
+    // [修改] 新增 Effect：当 Modal 打开或 assetToEdit 变化时，初始化数据
+    useEffect(() => {
+        if (isOpen) {
+            if (assetToEdit) {
+                // === 编辑模式：回填数据 ===
+                setName(assetToEdit.name);
+                setPurchasePrice(assetToEdit.purchasePrice.toString());
+                setPurchaseDate(assetToEdit.purchaseDate);
+                setStatus(assetToEdit.status);
+                setResidualValue(assetToEdit.residualValue.toString());
+                setUsefulLifeYears(assetToEdit.usefulLifeYears.toString());
+
+                // 判断类型并回填特有字段
+                // 依据：检查对象中是否有 serialNumber 字段
+                if ('serialNumber' in assetToEdit) {
+                    setAssetType('HARDWARE');
+                    setSerialNumber((assetToEdit as any).serialNumber);
+                    setLocation((assetToEdit as any).location);
+                    setWarrantyDate((assetToEdit as any).warrantyDate || '');
+                } else {
+                    setAssetType('SOFTWARE');
+                    setLicenseKey((assetToEdit as any).licenseKey);
+                    setExpiryDate((assetToEdit as any).expiryDate || '');
+                }
+            } else {
+                // === 新增模式：清空表单 ===
+                resetForm();
+            }
+        }
+    }, [isOpen, assetToEdit]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -61,30 +95,47 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
                 usefulLifeYears: parseInt(usefulLifeYears, 10),
             };
 
-            if (assetType === 'HARDWARE') {
-                await assetService.createHardwareAsset({
+            if (assetToEdit) {
+                // [修改] === 更新逻辑 ===
+                // 调用 updateAsset 接口 (需要在 service 中实现)
+                const updateData = {
                     ...commonData,
-                    type: 'HARDWARE',
-                    serialNumber,
-                    location,
-                    warrantyDate: warrantyDate || undefined,
-                });
+                    // 根据当前类型合并特有字段
+                    ...(assetType === 'HARDWARE'
+                        ? { serialNumber, location, warrantyDate: warrantyDate || undefined }
+                        : { licenseKey, expiryDate: expiryDate || undefined })
+                };
+
+                await assetService.updateAsset(assetToEdit.id, updateData);
+                toast.success('Asset updated successfully!');
             } else {
-                await assetService.createSoftwareAsset({
-                    ...commonData,
-                    type: 'SOFTWARE',
-                    licenseKey,
-                    expiryDate: expiryDate || undefined,
-                });
+                // [保留] === 创建逻辑 ===
+                if (assetType === 'HARDWARE') {
+                    await assetService.createHardwareAsset({
+                        ...commonData,
+                        type: 'HARDWARE',
+                        serialNumber,
+                        location,
+                        warrantyDate: warrantyDate || undefined,
+                    });
+                } else {
+                    await assetService.createSoftwareAsset({
+                        ...commonData,
+                        type: 'SOFTWARE',
+                        licenseKey,
+                        expiryDate: expiryDate || undefined,
+                    });
+                }
+                toast.success('Asset created successfully!');
             }
 
-            toast.success('Asset created successfully!');
-            resetForm();
+            // 成功后处理
+            if (!assetToEdit) resetForm(); // 如果是编辑，保留数据或许更好，或者也清空，这里选择清空
             onSuccess();
             onClose();
         } catch (error) {
-            console.error('Failed to create asset:', error);
-            toast.error('Failed to create asset. Please try again.');
+            console.error('Failed to save asset:', error);
+            toast.error(assetToEdit ? 'Failed to update asset.' : 'Failed to create asset.');
         } finally {
             setIsLoading(false);
         }
@@ -95,48 +146,54 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
             {/* Modal */}
-            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto m-4">
+            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto m-4 animate-in fade-in zoom-in duration-200">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">Add New Asset</h2>
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50 rounded-t-xl">
+                    <h2 className="text-xl font-semibold text-gray-900">
+                        {/* [修改] 动态标题 */}
+                        {assetToEdit ? 'Edit Asset' : 'Add New Asset'}
+                    </h2>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
                     >
                         <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
 
                 {/* Asset Type Selector */}
-                <div className="p-6 border-b border-gray-200">
-                    <div className="flex gap-4">
-                        <button
-                            type="button"
-                            onClick={() => setAssetType('HARDWARE')}
-                            className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all ${assetType === 'HARDWARE'
+                {/* [修改] 编辑模式下隐藏类型选择，因为类型通常无法更改 */}
+                {!assetToEdit && (
+                    <div className="p-6 border-b border-gray-200">
+                        <div className="flex gap-4">
+                            <button
+                                type="button"
+                                onClick={() => setAssetType('HARDWARE')}
+                                className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all ${assetType === 'HARDWARE'
                                     ? 'border-blue-500 bg-blue-50 text-blue-700'
                                     : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                        >
-                            <Package className="w-5 h-5" />
-                            <span className="font-medium">Hardware</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setAssetType('SOFTWARE')}
-                            className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all ${assetType === 'SOFTWARE'
+                                    }`}
+                            >
+                                <Package className="w-5 h-5" />
+                                <span className="font-medium">Hardware</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setAssetType('SOFTWARE')}
+                                className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border-2 transition-all ${assetType === 'SOFTWARE'
                                     ? 'border-blue-500 bg-blue-50 text-blue-700'
                                     : 'border-gray-200 hover:border-gray-300'
-                                }`}
-                        >
-                            <Code className="w-5 h-5" />
-                            <span className="font-medium">Software</span>
-                        </button>
+                                    }`}
+                            >
+                                <Code className="w-5 h-5" />
+                                <span className="font-medium">Software</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -215,6 +272,7 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
                             <option value={AssetStatus.ASSIGNED}>Assigned</option>
                             <option value={AssetStatus.BROKEN}>Broken</option>
                             <option value={AssetStatus.REPAIRING}>Repairing</option>
+                            {/* 如果有 DISPOSED 也可以加在这里，但一般不做主动选择 */}
                         </select>
                     </div>
 
@@ -288,7 +346,8 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
                             disabled={isLoading}
                             className="w-full py-2.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                            {isLoading ? 'Creating...' : 'Create Asset'}
+                            {/* [修改] 动态按钮文本 */}
+                            {isLoading ? 'Saving...' : (assetToEdit ? 'Save Changes' : 'Create Asset')}
                         </button>
                     </div>
                 </form>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Plus, Package, DollarSign, Key, CheckCircle, Loader2,
-    Search, Filter, Trash2, Edit, UserPlus, MoreVertical
+    Search, Filter, Trash2, Edit, UserPlus
 } from 'lucide-react';
 import { useDashboardStats } from '../hooks/useDashboardStats';
 import { AssetStatus, Asset } from '../types/asset';
@@ -64,6 +64,7 @@ const Dashboard: React.FC = () => {
 
     // Modal 状态
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [editingAsset, setEditingAsset] = useState<Asset | null>(null); // 用于存储当前正在编辑的资产
 
     // 3. 获取资产列表的方法 (支持搜索和筛选)
     const fetchAssets = async () => {
@@ -81,6 +82,18 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    // --- 新增：处理编辑点击 ---
+    const handleEditClick = (asset: Asset) => {
+        setEditingAsset(asset); // 设置当前编辑对象
+        setIsAddModalOpen(true); // 打开 Modal
+    };
+
+    // --- 新增：处理新建点击 ---
+    const handleAddClick = () => {
+        setEditingAsset(null); // 明确清空编辑对象，表示这是“新增”模式
+        setIsAddModalOpen(true);
+    };
+
     // 当搜索词或筛选条件变化时，重新获取列表
     useEffect(() => {
         // 添加防抖 (Debounce) 以避免频繁请求
@@ -90,17 +103,26 @@ const Dashboard: React.FC = () => {
         return () => clearTimeout(timer);
     }, [searchQuery, statusFilter]);
 
-    // 处理删除逻辑 (Phase 2 Requirement)
+    // --- 修改：处理删除逻辑 ---
     const handleDelete = async (id: number) => {
-        if (window.confirm('Are you sure you want to delete this asset?')) {
+        // 二次确认框
+        if (window.confirm('Are you sure you want to delete this asset? This action cannot be undone.')) {
             try {
                 await assetService.deleteAsset(id);
-                fetchAssets(); // 刷新列表
-                refetchStats(); // 刷新统计数据
+                // 成功后刷新列表和统计
+                fetchAssets();
+                refetchStats();
             } catch (err) {
+                console.error(err);
                 alert('Failed to delete asset');
             }
         }
+    };
+
+    // Modal 关闭时，记得清空 editingAsset
+    const handleModalClose = () => {
+        setIsAddModalOpen(false);
+        setTimeout(() => setEditingAsset(null), 300); // 稍微延迟清空，避免 Modal 消失时突然变空
     };
 
     // 处理成功添加后的回调
@@ -130,7 +152,7 @@ const Dashboard: React.FC = () => {
                     <p className="text-gray-500 mt-1">Manage, track, and assign your organization's assets.</p>
                 </div>
                 <button
-                    onClick={() => setIsAddModalOpen(true)}
+                    onClick={handleAddClick} // [修改] 使用 handleAddClick
                     className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                 >
                     <Plus size={20} />
@@ -138,7 +160,7 @@ const Dashboard: React.FC = () => {
                 </button>
             </div>
 
-            {/* Stats Grid (保留) */}
+            {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Total Assets" value={stats?.totalAssets ?? 0} icon={<Package className="w-6 h-6 text-blue-600" />} color="bg-blue-50" />
                 <StatCard title="Total Value" value={formatCurrency(stats?.totalValue ?? 0)} icon={<DollarSign className="w-6 h-6 text-green-600" />} color="bg-green-50" />
@@ -146,14 +168,14 @@ const Dashboard: React.FC = () => {
                 <StatCard title="Available Assets" value={stats?.availableAssets ?? 0} icon={<CheckCircle className="w-6 h-6 text-emerald-600" />} color="bg-emerald-50" />
             </div>
 
-            {/* --- Phase 2: 升级后的资产列表 --- */}
+            {/* Asset List */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {/* 工具栏: 搜索 & 筛选 */}
+                {/* Search & Filter */}
                 <div className="px-6 py-4 border-b border-gray-200 flex flex-col sm:flex-row gap-4 justify-between items-center">
                     <h2 className="text-lg font-semibold text-gray-900">Assets List</h2>
 
                     <div className="flex gap-2 w-full sm:w-auto">
-                        {/* 搜索框 */}
+                        {/* Search Bar */}
                         <div className="relative flex-1 sm:w-64">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <input
@@ -165,7 +187,7 @@ const Dashboard: React.FC = () => {
                             />
                         </div>
 
-                        {/* 状态筛选下拉框 */}
+                        {/* Status Filter */}
                         <div className="relative sm:w-40">
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <select
@@ -182,7 +204,7 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 表格内容 */}
+                {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-gray-50">
@@ -248,14 +270,14 @@ const Dashboard: React.FC = () => {
                                                 <button
                                                     title="Assign User"
                                                     className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                                    onClick={() => console.log('Assign clicked', asset.id)} // Phase 2: 后续连接 Modal
+                                                    onClick={() => console.log('Assign clicked', asset.id)}
                                                 >
                                                     <UserPlus size={16} />
                                                 </button>
                                                 <button
                                                     title="Edit"
                                                     className="p-1 text-gray-600 hover:bg-gray-100 rounded"
-                                                    onClick={() => console.log('Edit clicked', asset.id)} // Phase 2: 后续连接 Modal
+                                                    onClick={() => handleEditClick(asset)} // [修改] 调用 handleEditClick
                                                 >
                                                     <Edit size={16} />
                                                 </button>
@@ -276,11 +298,12 @@ const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Add Asset Modal */}
+            {/* Add/Edit Asset Modal */}
             <AddAssetModal
                 isOpen={isAddModalOpen}
-                onClose={() => setIsAddModalOpen(false)}
+                onClose={handleModalClose} // [修改] 使用 handleModalClose
                 onSuccess={handleAddSuccess}
+                assetToEdit={editingAsset} // [修改] 传递当前编辑对象
             />
         </div>
     );

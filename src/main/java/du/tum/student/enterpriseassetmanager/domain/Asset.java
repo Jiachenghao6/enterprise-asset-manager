@@ -15,6 +15,8 @@ import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -30,6 +32,7 @@ import java.time.LocalDateTime;
 // 2. (可选) 全局过滤，默认查询时不显示已报废资产
 // 注意：PostgreSQL 中枚举通常存储为字符串，确保数据库里存的是 'DISPOSED'
 @SQLRestriction("status <> 'DISPOSED'")
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public abstract class Asset {
     // @id es ist ein Primary key
     @Id
@@ -83,11 +86,11 @@ public abstract class Asset {
     private LocalDateTime createdAt;
 
     @LastModifiedBy
-    @Column(insertable = false) // 只有更新时才写入（可选配置，通常不写 insertable=false 也行，看需求）
+    @Column
     private String lastModifiedBy;
 
     @LastModifiedDate
-    @Column(insertable = false)
+    @Column
     private LocalDateTime lastModifiedAt;
 
     public Asset(String name, BigDecimal purchasePrice, LocalDate purchaseDate, AssetStatus status,
