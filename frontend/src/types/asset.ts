@@ -81,39 +81,54 @@ export interface RecentAsset {
     createdAt: string;
 }
 
-// 在 UserSummary 中补充字段，与后端 UserSummaryDto 对应
+
 export interface UserSummary {
     id: number;
     username: string;
-    firstname?: string; // 新增
-    lastname?: string;  // 新增
+    firstname?: string;
+    lastname?: string;
     email?: string;
 }
 // [Phase 3 新增] 通用分页响应接口 (对应后端的 Page<T>)
 export interface Page<T> {
-    content: T[];          // 数据列表
-    totalPages: number;    // 总页数
-    totalElements: number; // 总条数
-    size: number;          // 每页大小
-    number: number;        // 当前页码 (从0开始)
+    /** List of items on the current page. */
+    content: T[];
+    /** Total number of pages. */
+    totalPages: number;
+    /** Total number of items across all pages. */
+    totalElements: number;
+    /** Number of items per page. */
+    size: number;
+    /** Current page number (0-indexed). */
+    number: number;
+    /** Whether this is the first page. */
     first: boolean;
+    /** Whether this is the last page. */
     last: boolean;
+    /** Whether the page is empty. */
     empty: boolean;
 }
 
-// [Phase 3 修改] 升级搜索参数接口
+/**
+ * Parameters for searching and filtering assets.
+ */
 export interface AssetSearchParams {
-    // 原有的
+    /** Fuzzy search query (name, serial, etc.). */
     query?: string;
+    /** Filter by status. */
     status?: AssetStatus | '';
 
-    // [Phase 2 新增] 精准搜索
+    /** Exact match for serial number. */
     serialNumber?: string;
+    /** Filter by assigned user ID. */
     assignedToUserId?: number;
 
-    // [Phase 1 新增] 分页与排序
+    /** Page number (0-indexed). */
     page?: number;
+    /** Page size. */
     size?: number;
+    /** Field to sort by. */
     sortBy?: string;
+    /** Sort direction ('asc' or 'desc'). */
     sortDir?: 'asc' | 'desc';
 }

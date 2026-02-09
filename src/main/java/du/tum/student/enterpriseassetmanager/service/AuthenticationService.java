@@ -14,6 +14,14 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service class for handling user authentication and registration.
+ * <p>
+ * This service interacts with {@link AuthenticationManager} and
+ * {@link JwtService}
+ * to authenticate users and generate JWT tokens.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
@@ -23,25 +31,34 @@ public class AuthenticationService {
         private final JwtService jwtService;
         private final AuthenticationManager authenticationManager;
 
-        // 🟢 注册逻辑
+        /**
+         * Registers a new user.
+         * <p>
+         * Creates a new user entity, encodes the password, saves to the database,
+         * and generates an immediate JWT token for the user.
+         * </p>
+         *
+         * @param request the registration request containing user details
+         * @return an {@link AuthenticationResponse} containing the JWT token
+         */
         public AuthenticationResponse register(RegisterRequest request) {
-                // 1. 构建 User 对象
+                // 1. Build User Object
                 var user = User.builder()
                                 .firstname(request.getFirstname())
                                 .lastname(request.getLastname())
                                 .username(request.getUsername())
                                 .email(request.getEmail())
-                                // ⚠️ 必须加密密码！
+                                // Encrypt the password!
                                 .password(passwordEncoder.encode(request.getPassword()))
-                                // 如果请求没传角色，默认给 USER
+                                // Default role to USER if not specified
                                 .role(Role.USER)
                                 .enabled(true)
                                 .build();
 
-                // 2. 保存到数据库
+                // 2. Save to database
                 repository.save(user);
 
-                // 3. 既然注册成功了，直接发个 Token 给他，让他免登录直接用
+                // 3. Generate Token for immediate access
                 Map<String, Object> extraClaims = new HashMap<>();
                 extraClaims.put("role", user.getRole().name());
 
@@ -52,24 +69,32 @@ public class AuthenticationService {
                                 .build();
         }
 
-        // 🔵 登录逻辑
+        /**
+         * Authenticates a user.
+         * <p>
+         * Validates credentials using {@link AuthenticationManager}. If successful,
+         * retrieves the user from the database and generates a JWT token.
+         * </p>
+         *
+         * @param request the authentication request containing username and password
+         * @return an {@link AuthenticationResponse} containing the JWT token
+         */
         public AuthenticationResponse authenticate(AuthenticationRequest request) {
-                // 1. 调用 Spring Security 的 AuthenticationManager 进行验证
-                // 这一步会自动校验用户名是否存在、密码是否匹配（利用了我们之前配的 DaoAuthenticationProvider）
+                // 1. Validate credentials with Spring Security's AuthenticationManager
+                // This throws an exception if authentication fails
                 authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(
                                                 request.getUsername(),
                                                 request.getPassword()));
 
-                // 2. 如果代码走到这里，说明验证通过了（否则上面会抛异常）
-                // 我们从数据库把用户取出来（为了拿 Role 信息放入 Token）
+                // 2. Fetch user details (Authentication passed at this point)
                 var user = repository.findByUsername(request.getUsername())
                                 .orElseThrow();
 
                 Map<String, Object> extraClaims = new HashMap<>();
                 extraClaims.put("role", user.getRole().name());
 
-                // 3. 生成 Token
+                // 3. Generate Token
                 var jwtToken = jwtService.generateToken(extraClaims, user);
 
                 return AuthenticationResponse.builder()

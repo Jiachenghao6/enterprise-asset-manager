@@ -17,6 +17,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filter that intercepts every request to validate the JWT token.
+ * <p>
+ * This filter extracts the JWT from the "Authorization" header, validates it,
+ * and sets the authentication in the {@link SecurityContextHolder} if the token
+ * is valid.
+ * </p>
+ */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -24,49 +32,61 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
+    /**
+     * Performs the filtering logic.
+     *
+     * @param request     the incoming HTTP request
+     * @param response    the outgoing HTTP response
+     * @param filterChain the filter chain execution
+     * @throws ServletException if a servlet error occurs
+     * @throws IOException      if an I/O error occurs
+     */
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        // 1. 尝试从请求头获取 Authorization 信息
+        // 1. Extract the Authorization header
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
 
-        // 2. 如果没有 Token，或者格式不对，直接放行
+        // 2. If no token is provided or it doesn't start with "Bearer ", proceed
+        // without setting authentication.
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 3. 提取 Token
+        // 3. Extract the actual token
         jwt = authHeader.substring(7);
         userEmail = jwtService.extractUsername(jwt);
 
-        // 4. 如果 Token 里有用户名，且当前上下文里还没认证过
+        // 4. If the token contains a username and the user is not yet authenticated in
+        // the context
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            // 从数据库加载用户详细信息 (这里会获取最新的 enabled 状态)
+            // Load user details from the database (this includes the current 'enabled'
+            // status)
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-            // 5. 验证 Token 是否合法
+            // 5. Validate the token against the user details
             if (jwtService.isTokenValid(jwt, userDetails)) {
 
                 // ============================================================
-                // [新增部分] Phase 3.1: 实时检查用户禁用状态
+                // [Security Check] Phase 3.1: Real-time Account Status Verification
                 // ============================================================
                 if (!userDetails.isEnabled()) {
-                    // 如果用户被禁用，返回 403 Forbidden 并终止请求
+                    // If the user account is disabled, return a 403 Forbidden response immediately.
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType("application/json");
                     response.getWriter().write("{\"error\": \"User account is disabled\"}");
-                    return; // ⚠️ 非常重要：必须 return，阻止 filterChain 继续执行
+                    return; // CRITICAL: Stop the filter chain execution here.
                 }
                 // ============================================================
 
-                // 6. 生成“合法通行证”
+                // 6. Create an Authentication token
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
@@ -75,12 +95,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authToken.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // 7. 将通行证放入 SecurityContextHolder
+                // 7. Set the authentication in the context
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
-        // 8. 继续下一个过滤器
+        // 8. Proceed with the filter chain
         filterChain.doFilter(request, response);
     }
 }

@@ -9,13 +9,24 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Service class for managing Users.
+ * <p>
+ * Handles business logic related to user retrieval and status updates.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
 
     /**
-     * 获取所有用户列表，并转换为安全的 DTO
+     * Retrieves all users from the database and maps them to summary DTOs.
+     * <p>
+     * This ensures sensitive information (like passwords) is not exposed.
+     * </p>
+     *
+     * @return a list of {@link UserSummaryDto}
      */
     public List<UserSummaryDto> findAllUsers() {
         List<User> users = userRepository.findAll();
@@ -25,6 +36,12 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Maps a User entity to a UserSummaryDto.
+     *
+     * @param user the user entity
+     * @return the summary DTO
+     */
     private UserSummaryDto mapToDto(User user) {
         return UserSummaryDto.builder()
                 .id(user.getId())
@@ -38,11 +55,12 @@ public class UserService {
     }
 
     /**
-     * [新增] 更新用户启用状态
-     * 
-     * @param userId  目标用户ID
-     * @param enabled 是否启用
-     * @return 更新后的用户DTO
+     * Updates the enabled status of a user.
+     *
+     * @param userId  the ID of the target user
+     * @param enabled the new enabled status (true = active, false = disabled)
+     * @return the updated {@link UserSummaryDto}
+     * @throws RuntimeException if the user with the given ID is not found
      */
     public UserSummaryDto updateUserStatus(Long userId, boolean enabled) {
         User user = userRepository.findById(userId)
@@ -51,7 +69,7 @@ public class UserService {
         user.setEnabled(enabled);
         User savedUser = userRepository.save(user);
 
-        // 返回更新后的 DTO
+        // Return updated DTO
         return UserSummaryDto.builder()
                 .id(savedUser.getId())
                 .username(savedUser.getUsername())

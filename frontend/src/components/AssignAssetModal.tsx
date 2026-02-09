@@ -9,23 +9,34 @@ interface AssignAssetModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
-    asset: Asset | null; // 当前要分配的资产
+    asset: Asset | null;
 }
 
+/**
+ * Modal component for assigning an asset to a user.
+ * <p>
+ * Fetches the list of all users and provides a dropdown to select a user for assignment.
+ * When a user is selected and confirmed, the asset's status is updated to ASSIGNED.
+ * </p>
+ *
+ * @param {AssignAssetModalProps} props - The props for the component.
+ */
 const AssignAssetModal: React.FC<AssignAssetModalProps> = ({ isOpen, onClose, onSuccess, asset }) => {
     const [users, setUsers] = useState<UserSummary[]>([]);
-    const [selectedUserId, setSelectedUserId] = useState<string>(''); // select value 是 string
+    const [selectedUserId, setSelectedUserId] = useState<string>('');
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // 当 Modal 打开时，加载用户列表
     useEffect(() => {
         if (isOpen) {
             fetchUsers();
-            setSelectedUserId(''); // 重置选择
+            setSelectedUserId('');
         }
     }, [isOpen]);
 
+    /**
+     * Fetches the list of all users from the backend.
+     */
     const fetchUsers = async () => {
         setIsLoadingUsers(true);
         try {
@@ -39,18 +50,22 @@ const AssignAssetModal: React.FC<AssignAssetModalProps> = ({ isOpen, onClose, on
         }
     };
 
+    /**
+     * Handles the form submission for assigning the asset to the selected user.
+     *
+     * @param {React.FormEvent} e - The form event.
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!asset || !selectedUserId) return;
 
         setIsSubmitting(true);
         try {
-            // 调用后端分配接口
             await assetService.assignAsset(asset.id, parseInt(selectedUserId));
 
             toast.success(`Asset assigned successfully!`);
-            onSuccess(); // 刷新父组件列表
-            onClose();   // 关闭弹窗
+            onSuccess();
+            onClose();
         } catch (error) {
             console.error('Assignment failed', error);
             toast.error('Failed to assign asset.');
@@ -63,10 +78,10 @@ const AssignAssetModal: React.FC<AssignAssetModalProps> = ({ isOpen, onClose, on
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* 背景遮罩 */}
+            {/* Background Overlay */}
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose} />
 
-            {/* Modal 内容 */}
+            {/* Modal Content */}
             <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md m-4 animate-in fade-in zoom-in duration-200 overflow-hidden">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-blue-50/50">

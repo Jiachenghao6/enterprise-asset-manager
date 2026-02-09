@@ -5,13 +5,20 @@ import { adminService, UserFull } from '../services/adminService';
 import { authService } from '../services/authService';
 import { jwtDecode } from 'jwt-decode';
 
+/**
+ * Users management page component.
+ * <p>
+ * Displays a list of all users. Allows admins to promote/demote users (change role) and enable/disable accounts.
+ * Prevents admins from modifying their own account status.
+ * </p>
+ */
 const Users: React.FC = () => {
     const [users, setUsers] = useState<UserFull[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [currentUserSub, setCurrentUserSub] = useState('');
 
-    // 获取当前登录用户名，防止自己降级自己
+    // Fetch current username to prevent self-lockout
     useEffect(() => {
         const token = authService.getToken();
         if (token) {
@@ -50,15 +57,15 @@ const Users: React.FC = () => {
         try {
             await adminService.updateUserRole(user.id, newRole);
             toast.success(`User ${user.username} has been ${actionName.toLowerCase()}d!`);
-            fetchUsers(); // 刷新列表
+            fetchUsers(); // Refresh list
         } catch (err) {
             toast.error('Failed to update role.');
         }
     };
 
-    // [新增] 处理状态变更
+    // Handle status change (enable/disable)
     const handleStatusChange = async (user: UserFull) => {
-        const newStatus = !user.enabled; // 取反
+        const newStatus = !user.enabled; // Toggle
         const actionName = newStatus ? 'Enable' : 'Disable';
         const confirmMsg = newStatus
             ? `Are you sure you want to re-enable access for ${user.username}?`
@@ -71,9 +78,9 @@ const Users: React.FC = () => {
         try {
             await adminService.updateUserStatus(user.id, newStatus);
             toast.success(`User ${user.username} has been ${actionName.toLowerCase()}d!`);
-            fetchUsers(); // 刷新列表以显示最新状态
+            fetchUsers(); // Refresh list to show latest status
         } catch (err: any) {
-            // 如果后端返回 409 Conflict (尝试禁用自己)，显示具体错误信息
+            // If backend returns 409 Conflict (trying to disable self)
             if (err.response && err.response.status === 409) {
                 toast.error(err.response.data || 'Cannot disable yourself.');
             } else {
@@ -112,7 +119,7 @@ const Users: React.FC = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                                {/* [新增] 状态列头 */}
+                                {/* Status Header */}
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
@@ -148,7 +155,7 @@ const Users: React.FC = () => {
                                         </span>
                                     </td>
 
-                                    {/* [新增] 状态展示列 */}
+                                    {/* Status Column */}
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border
                                             ${user.enabled
@@ -162,10 +169,10 @@ const Users: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                                         {user.username !== currentUserSub && (
                                             <div className="flex justify-end items-center gap-3">
-                                                {/* 角色按钮 */}
+                                                {/* Role Button */}
                                                 <button
                                                     onClick={() => handleRoleChange(user)}
-                                                    disabled={!user.enabled} // 禁用状态下不允许提升角色
+                                                    disabled={!user.enabled} // Cannot promote disabled users
                                                     className={`font-medium hover:underline focus:outline-none 
                                                         ${!user.enabled ? 'text-gray-400 cursor-not-allowed' :
                                                             user.role === 'ADMIN' ? 'text-orange-600 hover:text-orange-800' : 'text-blue-600 hover:text-blue-800'}`}
@@ -173,10 +180,10 @@ const Users: React.FC = () => {
                                                     {user.role === 'ADMIN' ? 'Demote' : 'Promote'}
                                                 </button>
 
-                                                {/* 分隔线 */}
+                                                {/* Divider */}
                                                 <span className="text-gray-300">|</span>
 
-                                                {/* [新增] 禁用/启用按钮 */}
+                                                {/* Enable/Disable Button */}
                                                 <button
                                                     onClick={() => handleStatusChange(user)}
                                                     className={`font-medium hover:underline focus:outline-none flex items-center gap-1

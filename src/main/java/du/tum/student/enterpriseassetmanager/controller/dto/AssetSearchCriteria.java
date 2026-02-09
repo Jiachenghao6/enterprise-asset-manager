@@ -3,14 +3,31 @@ package du.tum.student.enterpriseassetmanager.controller.dto;
 import du.tum.student.enterpriseassetmanager.domain.AssetStatus;
 import lombok.Data;
 
+/**
+ * DTO for passing asset search criteria.
+ * <p>
+ * Supports both fuzzy search (query) and exact filtering (status, etc.).
+ * </p>
+ */
 @Data
 public class AssetSearchCriteria {
-    // 原有的模糊查询
+    /**
+     * Search term for fuzzy matching against name, serial number, license key, etc.
+     */
     private String query;
-    // 原有的状态查询
+
+    /**
+     * Filter by asset status (e.g., AVAILABLE, ASSIGNED).
+     */
     private AssetStatus status;
 
-    // [Phase 2 新增] 精准查询
-    private String serialNumber; // 硬件序列号
-    private Long assignedToUserId; // 分配给谁 (User ID)
+    /**
+     * Filter by exact hardware serial number.
+     */
+    private String serialNumber;
+
+    /**
+     * Filter by the ID of the assigned user.
+     */
+    private Long assignedToUserId;
 }

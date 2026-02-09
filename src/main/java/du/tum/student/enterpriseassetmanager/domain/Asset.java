@@ -21,25 +21,32 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Abstract base class representing an asset.
+ * <p>
+ * This entity uses JOINED inheritance strategy.
+ * It also implements soft deletion via Hibernate annotations:
+ * deleting an asset will instead update its status to 'DISPOSED'.
+ * </p>
+ */
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 @Getter
 @Setter
 @NoArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-// 1. 拦截删除操作，改为更新状态
+// 1. Intercept delete operations and update status instead
 @SQLDelete(sql = "UPDATE asset SET status = 'DISPOSED' WHERE id = ?")
-// 2. (可选) 全局过滤，默认查询时不显示已报废资产
-// 注意：PostgreSQL 中枚举通常存储为字符串，确保数据库里存的是 'DISPOSED'
+// 2. (Optional) Global filter to hide disposed assets by default
+// Note: Ensure the DB stores 'DISPOSED' as a string equivalent of the enum
 @SQLRestriction("status <> 'DISPOSED'")
 @JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 public abstract class Asset {
-    // @id es ist ein Primary key
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Asset Name
     @Column(nullable = false)
     @NotNull(message = "Asset name cannot be null")
     private String name;
@@ -67,22 +74,25 @@ public abstract class Asset {
     private Integer usefulLifeYears;
 
     /**
-     * 资产归属人
-     * 多对一关系：多个资产可以归属于一个用户
-     * FetchType.EAGER: 查询资产时，自动把 User 信息也查出来（方便前端显示）
+     * The user this asset is assigned to.
+     * <p>
+     * Many-to-One relationship: An asset belongs to one user.
+     * FetchType.EAGER is used to automatically load User details when fetching an
+     * Asset.
+     * </p>
      */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_id") // 数据库表里的外键列名
+    @JoinColumn(name = "user_id") // Foreign key column in DB
     private User assignedTo;
 
-    // --- 新增审计字段 ---
+    // --- Auditing Fields ---
 
     @CreatedBy
-    @Column(nullable = false, updatable = false) // 创建人一旦写入，后续更新不可修改
+    @Column(nullable = false, updatable = false)
     private String createdBy;
 
     @CreatedDate
-    @Column(nullable = false, updatable = false) // 创建时间不可修改
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @LastModifiedBy
@@ -93,13 +103,23 @@ public abstract class Asset {
     @Column
     private LocalDateTime lastModifiedAt;
 
+    /**
+     * Constructs a new Asset with validation.
+     *
+     * @param name            the name of the asset
+     * @param purchasePrice   the purchase price
+     * @param purchaseDate    the date of purchase
+     * @param status          the initial status
+     * @param residualValue   the estimated residual value
+     * @param usefulLifeYears the useful life in years
+     */
     public Asset(String name, BigDecimal purchasePrice, LocalDate purchaseDate, AssetStatus status,
             BigDecimal residualValue, Integer usefulLifeYears) {
         this.name = name;
         this.purchasePrice = purchasePrice;
         this.purchaseDate = purchaseDate;
         this.status = status;
-        // 如果传入 null，则回退到 0
+        // Default to zero if null
         this.residualValue = (residualValue != null) ? residualValue : BigDecimal.ZERO;
         this.usefulLifeYears = usefulLifeYears;
     }

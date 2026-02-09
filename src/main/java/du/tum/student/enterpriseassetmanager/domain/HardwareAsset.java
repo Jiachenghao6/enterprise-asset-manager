@@ -12,12 +12,20 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Entity representing a physical hardware asset.
+ * <p>
+ * Extends {@link Asset} to include hardware-specific fields like
+ * serial number, warranty date, and maintenance info.
+ * </p>
+ */
 @Entity
 @Table(name = "hardware_asset")
 @Getter
 @Setter
 @NoArgsConstructor
 public class HardwareAsset extends Asset {
+
     @Column(nullable = false, unique = true)
     private String serialNumber;
 
@@ -34,15 +42,29 @@ public class HardwareAsset extends Asset {
     @Min(value = 1, message = "Maintenance interval must be at least 1 month")
     private Integer maintenanceIntervalMonths;
 
+    /**
+     * Constructs a new HardwareAsset.
+     *
+     * @param name                      Name of the asset
+     * @param purchasePrice             Purchase price
+     * @param purchaseDate              Date of purchase
+     * @param status                    Current status
+     * @param residualValue             Residual value
+     * @param usefulLifeYears           Useful life in years
+     * @param serialNumber              Unique serial number
+     * @param location                  Physical location
+     * @param lastMaintenanceDate       Date of last maintenance
+     * @param maintenanceIntervalMonths Interval for maintenance in months
+     */
     public HardwareAsset(String name, BigDecimal purchasePrice, LocalDate purchaseDate,
-                         AssetStatus status, BigDecimal residualValue, Integer usefulLifeYears,
-                         String serialNumber, String location,
-                         LocalDate lastMaintenanceDate, Integer maintenanceIntervalMonths) {
+            AssetStatus status, BigDecimal residualValue, Integer usefulLifeYears,
+            String serialNumber, String location,
+            LocalDate lastMaintenanceDate, Integer maintenanceIntervalMonths) {
 
-        // 1. 调用父类构造函数 (super)
+        // 1. Call parent constructor
         super(name, purchasePrice, purchaseDate, status, residualValue, usefulLifeYears);
 
-        // 2. 赋值子类字段
+        // 2. Set subclass fields
         this.serialNumber = serialNumber;
         this.location = location;
         this.lastMaintenanceDate = lastMaintenanceDate;

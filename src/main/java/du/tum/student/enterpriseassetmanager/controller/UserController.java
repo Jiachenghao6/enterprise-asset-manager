@@ -11,17 +11,27 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * REST Controller for managing Users.
+ * <p>
+ * Provides endpoints for retrieving user information.
+ * </p>
+ */
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*") // 允许前端跨域访问
+@CrossOrigin(origins = "*") // Allow Cross-Origin Resource Sharing
 public class UserController {
 
     private final UserService userService;
 
     /**
-     * GET /api/v1/users
-     * 获取用户简要列表，用于下拉框选择
+     * Retrieves a summary list of all users.
+     * <p>
+     * Typically used for populating dropdowns or selection lists in the frontend.
+     * </p>
+     *
+     * @return a {@link ResponseEntity} containing a list of {@link UserSummaryDto}
      */
     @GetMapping
     public ResponseEntity<List<UserSummaryDto>> getAllUsers() {

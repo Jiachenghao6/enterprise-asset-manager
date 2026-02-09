@@ -12,45 +12,64 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+/**
+ * Security Configuration for the application.
+ * <p>
+ * This class configures the security filter chain, enabling JWT-based stateless
+ * authentication
+ * and defining access rules for various endpoints.
+ * </p>
+ */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-// 开启方法级别的权限控制 (比如 @PreAuthorize)
-@EnableMethodSecurity
+@EnableMethodSecurity // Enables method-level security (e.g., @PreAuthorize)
 public class SecurityConfiguration {
 
-    private final JwtAuthenticationFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
+        private final JwtAuthenticationFilter jwtAuthFilter;
+        private final AuthenticationProvider authenticationProvider;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // 1. 关闭 CSRF (因为我们要用 JWT 做无状态认证，不需要防范 CSRF 攻击)
-                .csrf(AbstractHttpConfigurer::disable)
+        /**
+         * Configures the security filter chain.
+         *
+         * @param http the {@link HttpSecurity} to modify
+         * @return the configured {@link SecurityFilterChain}
+         * @throws Exception if an error occurs while configuring security
+         */
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                // 1. Disable CSRF (Cross-Site Request Forgery) protection as we are using
+                                // stateless JWT authentication.
+                                .csrf(AbstractHttpConfigurer::disable)
 
-                // 2. 配置请求拦截规则
-                .authorizeHttpRequests(auth -> auth
-                        // 允许 "白名单" 访问 (例如登录、注册接口，虽然我们还没写，但先预留好)
-                        .requestMatchers("/api/v1/auth/**",
-                                "/v3/api-docs",
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html").permitAll()
-                        // 其他任何请求，都必须通过认证 (Authenticate)
-                        .anyRequest().authenticated()
-                )
+                                // 2. Configure request authorization rules.
+                                .authorizeHttpRequests(auth -> auth
+                                                // Permit access to "whitelist" endpoints (e.g., authentication, API
+                                                // docs) without credentials.
+                                                .requestMatchers("/api/v1/auth/**",
+                                                                "/v3/api-docs",
+                                                                "/v3/api-docs/**",
+                                                                "/swagger-ui/**",
+                                                                "/swagger-ui.html")
+                                                .permitAll()
+                                                // Require authentication for all other requests.
+                                                .anyRequest().authenticated())
 
-                // 3. 配置 Session 管理策略 -> 无状态 (Stateless)
-                // 这意味着服务器不会在内存里存 Session，每次请求都得带 Token。
-                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                // 3. Configure Session Management to be Stateless.
+                                // The server will not store any session state; every request must contain a
+                                // valid JWT.
+                                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 4. 指定认证提供者
-                .authenticationProvider(authenticationProvider)
+                                // 4. Set the Authentication Provider.
+                                .authenticationProvider(authenticationProvider)
 
-                // 5. 【关键】把我们的 JWT 过滤器插到 Spring 默认的 UsernamePassword 过滤器之前
-                // 这样请求一来，先检查有没有 JWT，有就直接放行，没有再走后面的逻辑。
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                                // 5. Add the JWT Authentication Filter before the standard
+                                // UsernamePasswordAuthenticationFilter.
+                                // This ensures that the token is checked before attempting username/password
+                                // authentication.
+                                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 }

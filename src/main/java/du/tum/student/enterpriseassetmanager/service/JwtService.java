@@ -15,6 +15,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * Service class for manipulating JWT tokens.
+ * <p>
+ * Handles token generation, validation, and extraction of claims (e.g.,
+ * username, expiration).
+ * </p>
+ */
 @Service
 public class JwtService {
 
@@ -24,31 +31,52 @@ public class JwtService {
     @Value("${application.security.jwt.expiration}")
     private long jwtExpiration;
 
-    // 1. 从 Token 中提取用户名
+    /**
+     * Extracts the username from a JWT token.
+     *
+     * @param token the JWT token
+     * @return the username contained in the subject claim
+     */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // 2. 生成 Token (不带额外信息)
+    /**
+     * Generates a token for a user without extra claims.
+     *
+     * @param userDetails the user details
+     * @return the generated JWT token
+     */
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
     }
 
-    // 3. 生成 Token (带额外信息，如角色等)
+    /**
+     * Generates a token for a user with extra claims.
+     *
+     * @param extraClaims a map of additional claims to include
+     * @param userDetails the user details
+     * @return the generated JWT token
+     */
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return Jwts.builder()
                 .setClaims(extraClaims)
-                .setSubject(userDetails.getUsername()) // 设置“主题”为用户名
+                .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration)) // 设置过期时间
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256) // 签名
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    // 4. 验证 Token 是否有效
+    /**
+     * Validates if a token belongs to the given user and is not expired.
+     *
+     * @param token       the JWT token
+     * @param userDetails the user details to match against
+     * @return true if valid, false otherwise
+     */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        // 用户名匹配 且 Token 未过期
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
     }
 
@@ -60,7 +88,15 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    // 通用的 Claim 提取器
+    /**
+     * Extracts a specific claim from the token.
+     *
+     * @param token          the JWT token
+     * @param claimsResolver a function to extract the desired claim from
+     *                       {@link Claims}
+     * @param <T>            the type of the claim
+     * @return the extracted claim
+     */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);

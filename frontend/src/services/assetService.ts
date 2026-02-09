@@ -1,7 +1,9 @@
 import api from '../lib/api';
 import { DashboardStats, Asset, HardwareAsset, SoftwareAsset, RecentAsset, AssetStatus, Page, AssetSearchParams } from '../types/asset';
 
-// [新增] 软件批量请求接口
+/**
+ * Interface for batch software creation request.
+ */
 export interface BatchSoftwareRequest {
     name: string;
     purchasePrice: number;
@@ -14,7 +16,9 @@ export interface BatchSoftwareRequest {
     quantity: number;
 }
 
-// [新增] 批量请求的参数接口 (对应后端的 BatchHardwareRequest DTO)
+/**
+ * Interface for batch hardware creation request.
+ */
 export interface BatchHardwareRequest {
     name: string;
     purchasePrice: number;
@@ -29,21 +33,27 @@ export interface BatchHardwareRequest {
 }
 
 /**
- * Asset Service for API calls
+ * Service for managing Assets.
+ * <p>
+ * Handles API calls for creating, retrieving, updating, and deleting assets.
+ * Also supports batch operations and statistics retrieval.
+ * </p>
  */
 export const assetService = {
     /**
-     * Get dashboard statistics
+     * Retrieves dashboard statistics.
+     * 
+     * @returns {Promise<DashboardStats>} A promise resolving to the dashboard stats.
      */
     getStats: async (): Promise<DashboardStats> => {
         const response = await api.get<DashboardStats>('/assets/stats');
         return response.data;
     },
 
-
-
     /**
-     * Get recent assets (top 5)
+     * Retrieves the 5 most recently created assets.
+     * 
+     * @returns {Promise<RecentAsset[]>} A promise resolving to a list of recent assets.
      */
     getRecentAssets: async (): Promise<RecentAsset[]> => {
         const response = await api.get<Asset[]>('/assets/recent');
@@ -59,7 +69,11 @@ export const assetService = {
     },
 
     /**
-     * Get all assets
+     * Retrieves a paginated list of all assets.
+     * 
+     * @param {number} [page=0] - The page number (0-indexed).
+     * @param {number} [size=10] - The number of items per page.
+     * @returns {Promise<Page<Asset>>} A promise resolving to a page of assets.
      */
     getAllAssets: async (page = 0, size = 10): Promise<Page<Asset>> => {
         const response = await api.get<Page<Asset>>('/assets', {
@@ -68,12 +82,17 @@ export const assetService = {
         return response.data;
     },
 
-    // [修改后] 返回 Page<Asset>
+    /**
+     * Searches for assets using dynamic criteria.
+     * 
+     * @param {AssetSearchParams} params - The search parameters including query string and filters.
+     * @returns {Promise<Page<Asset>>} A promise resolving to a page of matching assets.
+     */
     searchAssets: async (params: AssetSearchParams): Promise<Page<Asset>> => {
         const response = await api.get<Page<Asset>>('/assets/search', {
             params: {
                 ...params,
-                // 确保分页参数有默认值
+                // Ensure pagination defaults
                 page: params.page ?? 0,
                 size: params.size ?? 10,
                 sortBy: params.sortBy ?? 'id',
@@ -84,7 +103,11 @@ export const assetService = {
     },
 
     /**
-     * Update Asset (更新资产)
+     * Updates an existing asset.
+     * 
+     * @param {number} id - The ID of the asset to update.
+     * @param {Partial<Asset>} data - The fields to update.
+     * @returns {Promise<Asset>} A promise resolving to the updated asset.
      */
     updateAsset: async (id: number, data: Partial<Asset>): Promise<Asset> => {
         const response = await api.put<Asset>(`/assets/${id}`, data);
@@ -92,14 +115,21 @@ export const assetService = {
     },
 
     /**
-     * Delete Asset (软删除)
+     * Deletes an asset (Soft Delete).
+     * 
+     * @param {number} id - The ID of the asset to delete.
+     * @returns {Promise<void>}
      */
     deleteAsset: async (id: number): Promise<void> => {
         await api.delete(`/assets/${id}`);
     },
 
     /**
-     * Assign Asset to User (分配资产)
+     * Assigns an asset to a user.
+     * 
+     * @param {number} assetId - The ID of the asset.
+     * @param {number} userId - The ID of the user.
+     * @returns {Promise<Asset>} A promise resolving to the updated asset.
      */
     assignAsset: async (assetId: number, userId: number): Promise<Asset> => {
         const response = await api.post<Asset>(`/assets/${assetId}/assign`, { userId });
@@ -107,7 +137,10 @@ export const assetService = {
     },
 
     /**
-     * Create a hardware asset
+     * Creates a single hardware asset.
+     * 
+     * @param {Omit<HardwareAsset, 'id' | 'createdAt' | 'createdBy'>} data - The hardware asset data.
+     * @returns {Promise<Asset>} A promise resolving to the created asset.
      */
     createHardwareAsset: async (data: Omit<HardwareAsset, 'id' | 'createdAt' | 'createdBy'>): Promise<Asset> => {
         const response = await api.post<Asset>('/assets/hardware', data);
@@ -115,17 +148,33 @@ export const assetService = {
     },
 
     /**
-     * Create a software asset
+     * Creates a single software asset.
+     * 
+     * @param {Omit<SoftwareAsset, 'id' | 'createdAt' | 'createdBy'>} data - The software asset data.
+     * @returns {Promise<Asset>} A promise resolving to the created asset.
      */
     createSoftwareAsset: async (data: Omit<SoftwareAsset, 'id' | 'createdAt' | 'createdBy'>): Promise<Asset> => {
         const response = await api.post<Asset>('/assets/software', data);
         return response.data;
     },
-    // --- [Phase 3.2 新增] 批量创建接口 ---
+
+    /**
+     * Creates multiple hardware assets in a batch.
+     * 
+     * @param {BatchHardwareRequest} data - The batch creation request data.
+     * @returns {Promise<Asset[]>} A promise resolving to the list of created assets.
+     */
     createBatchHardwareAsset: async (data: BatchHardwareRequest): Promise<Asset[]> => {
         const response = await api.post<Asset[]>('/assets/batch/hardware', data);
         return response.data;
     },
+
+    /**
+     * Creates multiple software assets in a batch.
+     * 
+     * @param {BatchSoftwareRequest} data - The batch creation request data.
+     * @returns {Promise<Asset[]>} A promise resolving to the list of created assets.
+     */
     createBatchSoftwareAsset: async (data: BatchSoftwareRequest): Promise<Asset[]> => {
         const response = await api.post<Asset[]>('/assets/batch/software', data);
         return response.data;

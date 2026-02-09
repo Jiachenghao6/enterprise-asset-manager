@@ -6,20 +6,63 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+/**
+ * Request DTO for batch creation of software assets.
+ * <p>
+ * Used for volume licensing where multiple asset records share the same license
+ * key.
+ * </p>
+ */
 @Data
 public class BatchSoftwareRequest {
-    // 基础信息 (模板)
+    // --- Common Properties ---
+
+    /**
+     * Name of the software (e.g., "JetBrains IntelliJ IDEA").
+     */
     private String name;
+
+    /**
+     * Purchase price per license.
+     */
     private BigDecimal purchasePrice;
+
+    /**
+     * Date of purchase.
+     */
     private LocalDate purchaseDate;
+
+    /**
+     * Initial status of the licenses (usually AVAILABLE).
+     */
     private AssetStatus status;
+
+    /**
+     * Estimated residual value (often 0 for software).
+     */
     private BigDecimal residualValue;
+
+    /**
+     * Useful life in years (for amortization).
+     */
     private Integer usefulLifeYears;
 
-    // 软件特有
-    private String licenseKey; // 批量生成的软件通常共用一个 Key (批量授权)
+    // --- Software Specific ---
+
+    /**
+     * The shared license key for this batch.
+     */
+    private String licenseKey;
+
+    /**
+     * License expiration date.
+     */
     private LocalDate expiryDate;
 
-    // 批量参数
-    private Integer quantity; // 数量，例如 100
+    // --- Batch Parameters ---
+
+    /**
+     * Number of licenses to create.
+     */
+    private Integer quantity;
 }

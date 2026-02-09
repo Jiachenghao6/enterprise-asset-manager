@@ -1,6 +1,16 @@
 package du.tum.student.enterpriseassetmanager.domain;
 
+/**
+ * Enumeration of user roles within the system.
+ */
 public enum Role {
-    USER,   // Normal user only  read
-    ADMIN   // admin to CRUD
+    /**
+     * Standard user with read-only permissions for most resources.
+     */
+    USER,
+
+    /**
+     * Administrator with full CRUD permissions.
+     */
+    ADMIN
 }

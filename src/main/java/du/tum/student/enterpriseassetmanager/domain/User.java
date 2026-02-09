@@ -12,6 +12,12 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Entity representing a user in the system.
+ * <p>
+ * Implements {@link UserDetails} to integrate with Spring Security.
+ * </p>
+ */
 @Entity
 @Table(name = "_user")
 @Data
@@ -19,6 +25,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User implements UserDetails {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
@@ -42,11 +49,16 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    // === 新增：Enabled 字段 (路线图步骤 1) ===
-    @Builder.Default // 确保使用 Builder 创建时默认值为 true
+    // === Enabled Field ===
+    @Builder.Default // Default to true when using builder
     @Column(nullable = false)
     private boolean enabled = true;
 
+    /**
+     * Returns the authorities granted to the user.
+     *
+     * @return a collection of authorities (roles)
+     */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
@@ -64,13 +76,16 @@ public class User implements UserDetails {
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true; // 密码是否未过期
+        return true;
     }
 
-    // === 修改：isEnabled 方法 (路线图步骤 1) ===
+    /**
+     * Indicates whether the user is enabled or disabled.
+     *
+     * @return true if enabled, false otherwise
+     */
     @Override
     public boolean isEnabled() {
-        // 之前硬编码返回 true，现在返回字段值
         return this.enabled;
     }
 }

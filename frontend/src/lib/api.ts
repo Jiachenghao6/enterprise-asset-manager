@@ -1,8 +1,18 @@
 import axios from 'axios';
 
+/**
+ * Base URL for the API.
+ */
 export const API_BASE_URL = '/api/v1';
+
+/**
+ * LocalStorage key for storing the authentication token.
+ */
 export const AUTH_TOKEN_KEY = 'auth_token';
 
+/**
+ * Configured Axios instance for API requests.
+ */
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -10,6 +20,7 @@ const api = axios.create({
     },
 });
 
+// Request Interceptor: Attach Token
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem(AUTH_TOKEN_KEY);
@@ -23,19 +34,19 @@ api.interceptors.request.use(
     }
 );
 
+// Response Interceptor: Handle 401 Unauthorized
 api.interceptors.response.use(
-    (response) => response, // 如果成功，直接返回
+    (response) => response,
     (error) => {
-        // 如果后端返回 401 Unauthorized (Token 过期或无效)
+        // If backend returns 401 Unauthorized (Token expired or invalid)
         if (error.response && error.response.status === 401) {
             console.warn('Session expired. Redirecting to login...');
 
-            // 1. 清除本地 Token
-            localStorage.removeItem('token');
+            // 1. Clear local token
+            localStorage.removeItem(AUTH_TOKEN_KEY); // Corrected from 'token' to constant
 
-            // 2. 强制跳转回登录页
-            // 注意：这里不能直接用 useNavigate，因为这不是 React 组件。
-            // 使用 window.location.href 是最简单粗暴有效的方法。
+            // 2. Force redirect to login page
+            // Note: window.location.href is used because this is not a React component
             if (window.location.pathname !== '/login') {
                 window.location.href = '/login';
             }

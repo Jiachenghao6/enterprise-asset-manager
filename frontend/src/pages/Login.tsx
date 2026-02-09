@@ -4,6 +4,12 @@ import toast from 'react-hot-toast';
 import { Lock, Mail, Loader2 } from 'lucide-react';
 import { authService } from '../services/authService';
 
+/**
+ * Login page component.
+ * <p>
+ * Handles user authentication. Upon successful login, redirects the user to the dashboard.
+ * </p>
+ */
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');

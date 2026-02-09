@@ -17,13 +17,21 @@ import du.tum.student.enterpriseassetmanager.controller.dto.BatchSoftwareRequest
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map; // [新增] 引入 Map
+import java.util.Map;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
+/**
+ * REST Controller for managing Assets.
+ * <p>
+ * Provides endpoints for creating, retrieving, updating, and deleting assets
+ * (Hardware and Software).
+ * Also supports search, statistics, and batch operations.
+ * </p>
+ */
 @RestController
 @RequestMapping("api/v1/assets")
 @RequiredArgsConstructor
@@ -31,16 +39,37 @@ import org.springframework.data.domain.Sort;
 public class AssetController {
     private final AssetService assetService;
 
+    /**
+     * Creates a new Hardware Asset.
+     *
+     * @param asset the hardware asset to create
+     * @return the created {@link Asset}
+     */
     @PostMapping("/hardware")
     public Asset createHardware(@RequestBody HardwareAsset asset) {
         return assetService.createAsset(asset);
     }
 
+    /**
+     * Creates a new Software Asset.
+     *
+     * @param asset the software asset to create
+     * @return the created {@link Asset}
+     */
     @PostMapping("/software")
     public Asset createSoftware(@RequestBody SoftwareAsset asset) {
         return assetService.createAsset(asset);
     }
 
+    /**
+     * Retrieves a paginated list of all assets.
+     *
+     * @param page    the page number (default: 0)
+     * @param size    the page size (default: 10)
+     * @param sortBy  the property to sort by (default: "id")
+     * @param sortDir the sort direction, "asc" or "desc" (default: "asc")
+     * @return a {@link Page} of assets
+     */
     @GetMapping
     public Page<Asset> getAllAssets(
             @RequestParam(defaultValue = "0") int page,
@@ -48,37 +77,64 @@ public class AssetController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
 
-        // 1. 处理排序方向
+        // 1. Handle Sort Direction
         Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
 
-        // 2. 构建 Pageable 对象 (核心)
+        // 2. Build Pageable object
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        // 3. 调用 Service
+        // 3. Call Service
         return assetService.findAllAssets(pageable);
     }
 
+    /**
+     * Retrieves dashboard statistics.
+     *
+     * @return a {@link DashboardStatsDto} containing aggregated stats
+     */
     @GetMapping("/stats")
     public DashboardStatsDto getStats() {
         return assetService.getDashboardStats();
     }
 
+    /**
+     * Retrieves a list of recently added assets.
+     *
+     * @return a list of the 5 most recently created assets
+     */
     @GetMapping("/recent")
     public List<Asset> getRecentAssets() {
         return assetService.findRecentAssets();
     }
 
+    /**
+     * Calculates the current value of an asset based on depreciation.
+     *
+     * @param id the ID of the asset
+     * @return the current value as {@link BigDecimal}
+     */
     @GetMapping("/{id}/value")
     public BigDecimal getAssetValue(@PathVariable Long id) {
         return assetService.calculateValue(id);
     }
 
+    /**
+     * Searches for assets based on dynamic criteria.
+     *
+     * @param criteria the search criteria encapsulated in
+     *                 {@link AssetSearchCriteria}
+     * @param page     the page number (default: 0)
+     * @param size     the page size (default: 10)
+     * @param sortBy   the property to sort by (default: "id")
+     * @param sortDir  the sort direction, "asc" or "desc" (default: "asc")
+     * @return a {@link ResponseEntity} containing a {@link Page} of matching assets
+     */
     @GetMapping("/search")
     public ResponseEntity<Page<Asset>> searchAssets(
-            // [修改] 使用 @ModelAttribute 自动封装参数到 DTO
+            // Use @ModelAttribute to automatically bind request parameters to the DTO
             @ModelAttribute AssetSearchCriteria criteria,
 
-            // 分页参数保持不变
+            // Pagination parameters
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
@@ -89,17 +145,22 @@ public class AssetController {
 
         return ResponseEntity.ok(assetService.searchAssets(criteria, pageable));
     }
-    // ==========================================
-    // Phase 2 新增接口 (解决 404 问题)
-    // ==========================================
 
     /**
-     * [修改] 更新资产
-     * 使用 Map<String, Object> 接收参数，绕过 abstract class Asset 无法实例化的问题
+     * Updates an existing asset.
+     * <p>
+     * NOTE: Uses a {@code Map<String, Object>} to receive updates to bypass the
+     * limitation
+     * of instantiating the abstract {@link Asset} class directly.
+     * </p>
+     *
+     * @param id      the ID of the asset to update
+     * @param updates a map containing the fields to update
+     * @return the updated {@link Asset} wrapped in {@link ResponseEntity}
      */
     @PutMapping("/{id}")
     public ResponseEntity<Asset> updateAsset(@PathVariable Long id, @RequestBody Map<String, Object> updates) {
-        // 创建临时对象承载数据
+        // Create a temporary object to hold data
         Asset tempAsset = new Asset() {
         };
 
@@ -115,11 +176,11 @@ public class AssetController {
                 tempAsset.setPurchasePrice(new BigDecimal(price.toString()));
         }
 
-        // 3. Purchase Date [本次修复重点]
+        // 3. Purchase Date
         if (updates.containsKey("purchaseDate")) {
             Object dateStr = updates.get("purchaseDate");
             if (dateStr != null && !dateStr.toString().isEmpty()) {
-                // 前端通常传 "yyyy-MM-dd" (ISO-8601)，可以直接 parse
+                // Frontend usually sends "yyyy-MM-dd" (ISO-8601), which can be parsed directly
                 tempAsset.setPurchaseDate(LocalDate.parse(dateStr.toString()));
             }
         }
@@ -147,7 +208,10 @@ public class AssetController {
     }
 
     /**
-     * [新增] 删除资产 (软删除)
+     * Deletes an asset (Soft Delete).
+     *
+     * @param id the ID of the asset to delete
+     * @return {@link ResponseEntity} with no content
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAsset(@PathVariable Long id) {
@@ -156,7 +220,11 @@ public class AssetController {
     }
 
     /**
-     * [新增] 分配资产
+     * Assigns an asset to a user.
+     *
+     * @param id      the ID of the asset to assign
+     * @param payload a map containing the "userId" key
+     * @return the updated {@link Asset}
      */
     @PostMapping("/{id}/assign")
     public ResponseEntity<Asset> assignAsset(@PathVariable Long id, @RequestBody Map<String, Long> payload) {
@@ -168,8 +236,10 @@ public class AssetController {
     }
 
     /**
-     * 批量创建硬件资产
-     * POST /api/v1/assets/batch/hardware
+     * Creates multiple Hardware assets in a batch.
+     *
+     * @param request the batch creation request for hardware
+     * @return a list of created {@link Asset}s
      */
     @PostMapping("/batch/hardware")
     public ResponseEntity<List<Asset>> createBatchHardware(@RequestBody BatchHardwareRequest request) {
@@ -177,8 +247,10 @@ public class AssetController {
     }
 
     /**
-     * 批量创建软件资产
-     * POST /api/v1/assets/batch/software
+     * Creates multiple Software assets in a batch.
+     *
+     * @param request the batch creation request for software
+     * @return a list of created {@link Asset}s
      */
     @PostMapping("/batch/software")
     public ResponseEntity<List<Asset>> createBatchSoftware(@RequestBody BatchSoftwareRequest request) {

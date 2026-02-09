@@ -13,14 +13,23 @@ interface AddAssetModalProps {
 
 type AssetType = 'HARDWARE' | 'SOFTWARE';
 
+/**
+ * Modal component for adding or editing an asset.
+ * <p>
+ * Supports both individual and batch creation of Hardware and Software assets.
+ * Dynamically renders form fields based on the selected asset type and mode (single vs. batch).
+ * </p>
+ *
+ * @param {AddAssetModalProps} props - The props for the component.
+ */
 const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSuccess, assetToEdit }) => {
     const [assetType, setAssetType] = useState<AssetType>('HARDWARE');
     const [isLoading, setIsLoading] = useState(false);
 
-    // 批量模式状态
+    // Batch mode state
     const [isBatchMode, setIsBatchMode] = useState(false);
     const [batchQuantity, setBatchQuantity] = useState('1');
-    const [serialPrefix, setSerialPrefix] = useState(''); // 仅硬件用
+    const [serialPrefix, setSerialPrefix] = useState(''); // Only for hardware
 
     // Common fields
     const [name, setName] = useState('');
@@ -39,6 +48,9 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
     const [licenseKey, setLicenseKey] = useState('');
     const [expiryDate, setExpiryDate] = useState('');
 
+    /**
+     * Resets the form to its initial state.
+     */
     const resetForm = () => {
         setName('');
         setPurchasePrice('');
@@ -60,7 +72,7 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
     useEffect(() => {
         if (isOpen) {
             if (assetToEdit) {
-                // 编辑模式：强制关闭批量
+                // Edit mode: force disable batch mode
                 setIsBatchMode(false);
 
                 setName(assetToEdit.name);
@@ -86,6 +98,12 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
         }
     }, [isOpen, assetToEdit]);
 
+    /**
+     * Handles the form submission for creating or updating an asset.
+     * Supports single and batch creation for both hardware and software assets.
+     *
+     * @param {React.FormEvent} e - The form event.
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -116,7 +134,7 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
                     const qty = parseInt(batchQuantity, 10);
 
                     if (assetType === 'HARDWARE') {
-                        // 硬件批量
+                        // Hardware Batch
                         await assetService.createBatchHardwareAsset({
                             ...commonData,
                             location,
@@ -126,17 +144,17 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
                         });
                         toast.success(`Batch created ${qty} hardware assets!`);
                     } else {
-                        // [新增] 软件批量
+                        // Software Batch
                         await assetService.createBatchSoftwareAsset({
                             ...commonData,
-                            licenseKey, // 软件批量共用 Key
+                            licenseKey, // Software batch shares Key
                             expiryDate: expiryDate || undefined,
                             quantity: qty
                         });
                         toast.success(`Batch created ${qty} software licenses!`);
                     }
                 } else {
-                    // 单条创建
+                    // Single Create
                     if (assetType === 'HARDWARE') {
                         await assetService.createHardwareAsset({
                             ...commonData,
@@ -205,7 +223,7 @@ const AddAssetModal: React.FC<AddAssetModalProps> = ({ isOpen, onClose, onSucces
                             </button>
                         </div>
 
-                        {/* 批量模式 Toggle (硬件和软件都可用) */}
+                        {/* Batch Mode Toggle (Available for both Hardware and Software) */}
                         <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200">
                             <div className="flex items-center gap-2">
                                 <div className={`p-1.5 rounded ${isBatchMode ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}>

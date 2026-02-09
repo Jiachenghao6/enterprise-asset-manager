@@ -4,14 +4,11 @@ import {
     Search, Filter, Trash2, Edit, UserPlus
 } from 'lucide-react';
 import { useDashboardStats } from '../hooks/useDashboardStats';
-// [修改 1] 引入 Page 接口
 import { AssetStatus, Asset, Page } from '../types/asset';
 import { assetService } from '../services/assetService';
 import AddAssetModal from '../components/AddAssetModal';
 import AssignAssetModal from '../components/AssignAssetModal';
 
-// --- 组件定义保持不变 (StatCard, StatusBadge, formatCurrency) ---
-// [保留]
 interface StatCardProps {
     title: string;
     value: string | number;
@@ -19,6 +16,11 @@ interface StatCardProps {
     color: string;
 }
 
+/**
+ * Component to display a single statistic card.
+ *
+ * @param {StatCardProps} props - The props for the component.
+ */
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
         <div className="flex items-center justify-between">
@@ -33,6 +35,12 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color }) => (
     </div>
 );
 
+/**
+ * Component to display an asset status badge.
+ *
+ * @param {Object} props - The props for the component.
+ * @param {AssetStatus} props.status - The status to display.
+ */
 const StatusBadge: React.FC<{ status: AssetStatus }> = ({ status }) => {
     const colors: Record<AssetStatus, string> = {
         [AssetStatus.AVAILABLE]: 'bg-green-100 text-green-800',
@@ -55,7 +63,9 @@ const formatCurrency = (value: number): string => {
     }).format(value);
 };
 
-// [新增] 定义查询参数接口，方便管理状态
+/**
+ * State interface for dashboard query parameters.
+ */
 interface QueryParams {
     page: number;
     size: number;
@@ -65,16 +75,22 @@ interface QueryParams {
     status: AssetStatus | '';
 }
 
+/**
+ * Main Dashboard page component.
+ * <p>
+ * Displays key statistics and a paginated, sortable, and filterable list of assets.
+ * Allows adding, editing, deleting, and assigning assets.
+ * </p>
+ */
 const Dashboard: React.FC = () => {
-    // 1. 保留原本的统计 Hook
+    // 1. Keep original stats hook
     const { stats, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useDashboardStats();
 
-    // 2. [修改] 状态管理升级
-    // 不再只存 assets 数组，而是存整个 Page 对象
+    // 2. Manage page data
     const [pageData, setPageData] = useState<Page<Asset> | null>(null);
     const [isTableLoading, setIsTableLoading] = useState(false);
 
-    // [修改] 使用统一的 queryParams 管理所有搜索、分页、排序状态
+    // Manage query params
     const [queryParams, setQueryParams] = useState<QueryParams>({
         page: 0,
         size: 10,
@@ -84,17 +100,16 @@ const Dashboard: React.FC = () => {
         status: ''
     });
 
-    // Modal 状态 [保留]
+    // Modal state
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [assigningAsset, setAssigningAsset] = useState<Asset | null>(null);
 
-    // 3. [修改] 获取资产列表的方法
+    // 3. Asset fetching method
     const fetchAssets = async () => {
         setIsTableLoading(true);
         try {
-            // 这里调用 service，参数从 queryParams 里取
             const data = await assetService.searchAssets({
                 query: queryParams.query,
                 status: queryParams.status,
@@ -103,7 +118,7 @@ const Dashboard: React.FC = () => {
                 sortBy: queryParams.sortBy,
                 sortDir: queryParams.sortDir
             });
-            setPageData(data); // 这里的 data 现在是 Page<Asset>
+            setPageData(data);
         } catch (err) {
             console.error('Failed to fetch assets', err);
         } finally {
@@ -111,7 +126,7 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    // [新增] 排序处理函数
+    /** Handles sorting column clicks. */
     const handleSort = (field: string) => {
         setQueryParams(prev => ({
             ...prev,
@@ -120,23 +135,24 @@ const Dashboard: React.FC = () => {
         }));
     };
 
-    // [新增] 翻页处理函数
+    /** Handles pagination clicks. */
     const handlePageChange = (newPage: number) => {
         if (pageData && newPage >= 0 && newPage < pageData.totalPages) {
             setQueryParams(prev => ({ ...prev, page: newPage }));
         }
     };
 
-    // [新增] 搜索/筛选变化处理 (重置页码到 0)
+    /** Handles search input changes (resets page to 0). */
     const handleSearchChange = (val: string) => {
         setQueryParams(prev => ({ ...prev, query: val, page: 0 }));
     };
 
+    /** Handles status filter changes (resets page to 0). */
     const handleStatusChange = (val: AssetStatus | '') => {
         setQueryParams(prev => ({ ...prev, status: val, page: 0 }));
     };
 
-    // Modal 处理逻辑 [保留]
+    // Modal handlers
     const handleEditClick = (asset: Asset) => {
         setEditingAsset(asset);
         setIsAddModalOpen(true);
@@ -152,16 +168,16 @@ const Dashboard: React.FC = () => {
         setIsAssignModalOpen(true);
     };
 
-    // [修改] 依赖 queryParams 自动触发请求
+    // Auto-fetch on query param change with debounce
     useEffect(() => {
         const timer = setTimeout(() => {
             fetchAssets();
         }, 300);
         return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [queryParams]); // 当任何查询参数变化时，重新获取
+    }, [queryParams]);
 
-    // 删除逻辑 [保留]
+    // Delete handler
     const handleDelete = async (id: number) => {
         if (window.confirm('Are you sure you want to delete this asset? This action cannot be undone.')) {
             try {
@@ -185,7 +201,7 @@ const Dashboard: React.FC = () => {
         refetchStats();
     };
 
-    // 辅助渲染排序箭头
+    /** Helper to render sort arrows. */
     const renderSortIcon = (field: string) => {
         if (queryParams.sortBy !== field) return <span className="text-gray-300 ml-1">↕</span>;
         return queryParams.sortDir === 'asc' ? ' ↑' : ' ↓';
@@ -207,7 +223,7 @@ const Dashboard: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header [保留] */}
+            {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">Asset Management</h1>
@@ -222,7 +238,7 @@ const Dashboard: React.FC = () => {
                 </button>
             </div>
 
-            {/* Stats Grid [保留] */}
+            {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Total Assets" value={stats?.totalAssets ?? 0} icon={<Package className="w-6 h-6 text-blue-600" />} color="bg-blue-50" />
                 <StatCard title="Total Value" value={formatCurrency(stats?.totalValue ?? 0)} icon={<DollarSign className="w-6 h-6 text-green-600" />} color="bg-green-50" />
@@ -243,7 +259,6 @@ const Dashboard: React.FC = () => {
                                 type="text"
                                 placeholder="Search by name..."
                                 value={queryParams.query}
-                                // [修改] 使用新的处理函数
                                 onChange={(e) => handleSearchChange(e.target.value)}
                                 className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             />
@@ -253,7 +268,6 @@ const Dashboard: React.FC = () => {
                             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <select
                                 value={queryParams.status}
-                                // [修改] 使用新的处理函数
                                 onChange={(e) => handleStatusChange(e.target.value as AssetStatus | '')}
                                 className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none bg-white"
                             >
@@ -271,7 +285,6 @@ const Dashboard: React.FC = () => {
                     <table className="w-full">
                         <thead className="bg-gray-50">
                             <tr>
-                                {/* [修改] 增加点击排序功能 */}
                                 <th
                                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                                     onClick={() => handleSort('name')}
@@ -298,14 +311,12 @@ const Dashboard: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : (!pageData || pageData.content.length === 0) ? (
-                                // [修改] 检查 pageData 是否为空
                                 <tr>
                                     <td colSpan={6} className="text-center py-8 text-gray-500">
                                         No assets found matching your criteria.
                                     </td>
                                 </tr>
                             ) : (
-                                // [修改] 遍历 pageData.content 而不是 assets
                                 pageData.content.map((asset) => (
                                     <tr key={asset.id} className="hover:bg-gray-50 transition-colors group">
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -373,7 +384,7 @@ const Dashboard: React.FC = () => {
                     </table>
                 </div>
 
-                {/* [新增] 翻页控制条 */}
+                {/* Pagination Controls */}
                 {pageData && (
                     <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center bg-gray-50">
                         <div className="text-sm text-gray-700">
@@ -411,7 +422,7 @@ const Dashboard: React.FC = () => {
                 )}
             </div>
 
-            {/* Add/Edit Asset Modal [保留] */}
+            {/* Add/Edit Asset Modal */}
             <AddAssetModal
                 isOpen={isAddModalOpen}
                 onClose={handleModalClose}
@@ -419,7 +430,7 @@ const Dashboard: React.FC = () => {
                 assetToEdit={editingAsset}
             />
 
-            {/* Assign Asset Modal [保留] */}
+            {/* Assign Asset Modal */}
             <AssignAssetModal
                 isOpen={isAssignModalOpen}
                 onClose={() => setIsAssignModalOpen(false)}

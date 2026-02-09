@@ -1,6 +1,8 @@
 import api from '../lib/api';
 
-// 定义完整的用户接口 (包含角色)
+/**
+ * Interface representing a full user profile including administrative details.
+ */
 export interface UserFull {
     id: number;
     username: string;
@@ -11,9 +13,21 @@ export interface UserFull {
     enabled: boolean;
 }
 
+/**
+ * Service for administrative operations.
+ * <p>
+ * Handles user management tasks such as retrieving all users,
+ * updating roles, and modifying account status.
+ * </p>
+ */
 export const adminService = {
     /**
-     * 获取所有用户完整列表 (仅限管理员)
+     * Retrieves a complete list of users.
+     * <p>
+     * This endpoint is restricted to administrators.
+     * </p>
+     * 
+     * @returns {Promise<UserFull[]>} A promise that resolves to a list of usage profiles.
      */
     getAllUsers: async () => {
         const response = await api.get<UserFull[]>('/admin/users');
@@ -21,9 +35,11 @@ export const adminService = {
     },
 
     /**
-     * 修改用户角色
-     * @param id 用户ID
-     * @param role 新角色
+     * Updates a user's role.
+     * 
+     * @param {number} id - The ID of the user to update.
+     * @param {'USER' | 'ADMIN'} role - The new role to assign.
+     * @returns {Promise<UserFull>} A promise that resolves to the updated user profile.
      */
     updateUserRole: async (id: number, role: 'USER' | 'ADMIN') => {
         const response = await api.put<UserFull>(`/admin/users/${id}/role`, { role });
@@ -31,13 +47,15 @@ export const adminService = {
     },
 
     /**
-     * [新增] 修改用户启用状态
-     * @param id 用户ID
-     * @param enabled 是否启用
+     * Updates a user's account status (enabled/disabled).
+     * 
+     * @param {number} id - The ID of the user.
+     * @param {boolean} enabled - True to enable the account, false to disable.
+     * @returns {Promise<UserFull>} A promise that resolves to the updated user profile.
      */
     updateUserStatus: async (id: number, enabled: boolean) => {
-        // 后端接口: PUT /api/v1/admin/users/{id}/status?enabled=true/false
-        // 注意: axios.put 的第二个参数是 body，第三个参数才是 config (包含 params)
+        // Backend endpoint: PUT /api/v1/admin/users/{id}/status?enabled=true/false
+        // Note: axios.put 2nd arg is body, 3rd arg is config (containing params)
         const response = await api.put<UserFull>(`/admin/users/${id}/status`, null, {
             params: { enabled }
         });

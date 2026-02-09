@@ -4,13 +4,20 @@ import toast from 'react-hot-toast';
 import { Lock, Mail, User, Loader2, Type } from 'lucide-react'; // 补上 Type 图标用于名字
 import { authService } from '../services/authService';
 
+/**
+ * Registration page component.
+ * <p>
+ * Handles new user registration. Upon successful registration, redirects the user to the dashboard.
+ * Collects first name, last name, username, email, and password.
+ * </p>
+ */
 const Register: React.FC = () => {
     const [firstname, setFirstname] = useState('');
     const [lastname, setLastname] = useState('');
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    // ❌ [删除] const [role, setRole] ... 我们不再允许用户自己选角色
+    // ❌ [Removed] const [role, setRole] ... Roles are no longer selectable by user
 
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
@@ -22,11 +29,11 @@ const Register: React.FC = () => {
         try {
             if (!firstname || !lastname || !username || !email || !password) {
                 toast.error('Please fill in all fields.');
-                setIsLoading(false); // 记得这里要重置 loading
+                setIsLoading(false);
                 return;
             }
 
-            // ✅ [修改] 调用注册时，只传这5个字段，不再传 role
+            // ✅ [Modified] Pass only the 5 required fields
             await authService.register({
                 firstname,
                 lastname,
@@ -162,7 +169,7 @@ const Register: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* ❌ [删除] Role Select UI 整个块被移除了 */}
+                    {/* ❌ [Removed] Role Select UI block removed */}
 
                     <button
                         type="submit"

@@ -1,9 +1,31 @@
 package du.tum.student.enterpriseassetmanager.domain;
 
+/**
+ * Enumeration representing the possible states of an asset.
+ */
 public enum AssetStatus {
-    AVAILABLE, // im Lager kann man benutzen
-    ASSIGNED, // gehoert schon zu jemanden
-    BROKEN, // kaput, warten auf reparieren
-    REPAIRING, // schickt zu reparieren
-    DISPOSED, // schrott
+    /**
+     * Asset is available for assignment.
+     */
+    AVAILABLE,
+
+    /**
+     * Asset is currently assigned to a user.
+     */
+    ASSIGNED,
+
+    /**
+     * Asset is broken and needs attention.
+     */
+    BROKEN,
+
+    /**
+     * Asset is currently under repair.
+     */
+    REPAIRING,
+
+    /**
+     * Asset has been disposed of or written off.
+     */
+    DISPOSED,
 }
